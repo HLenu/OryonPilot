@@ -255,12 +255,10 @@ fn handle(mut request: Request, shared: &Arc<Shared>) {
                 out.to_string()
             }),
         )),
-        ("GET", "/api/predict") => Ok((
+        ("GET", "/api/predict") | ("GET", "/api/learner") => Ok((
             200,
             shared.with(|d| {
-                let mut j = d.prediction.to_json();
-                j.set("policy_preview", d.prediction_preview.to_json());
-                j.set("stats", d.predictor_stats.to_json());
+                let mut j = d.learner.to_json();
                 j.set(
                     "usage",
                     Json::Arr(
@@ -279,7 +277,6 @@ fn handle(mut request: Request, shared: &Arc<Shared>) {
             }),
         )),
         ("GET", "/api/safety") => Ok((200, shared.with(|d| safety_json(d).to_string()))),
-        ("GET", "/api/learner") => Ok((200, shared.with(|d| d.learner.to_json().to_string()))),
         ("GET", "/api/logs") => {
             let entries = shared.logger.recent(limit);
             Ok((
@@ -423,10 +420,6 @@ fn handle_action(shared: &Arc<Shared>, body: &str) -> Result<(u16, String), Stri
             shared.request_action(Action::ResetModel);
             Ok(ok("model reset requested"))
         }
-        "predict" => {
-            shared.request_action(Action::PredictNow);
-            Ok(ok("prediction requested"))
-        }
         "reload" => {
             shared.request_reload();
             Ok(ok("reload requested"))
@@ -553,25 +546,12 @@ fn handle_config(shared: &Arc<Shared>, body: &str) -> Result<(u16, String), Stri
     {
         cfg.policy.app_launch.boost_ms = v;
     }
-    setf!("predictor.min_confidence", cfg.predictor.min_confidence);
-    if let Some(v) = patch
-        .get_path("predictor.min_samples")
-        .and_then(|v| v.as_u64())
-    {
-        cfg.predictor.min_samples = v;
-    }
 
     if let Some(v) = patch
         .get_path("policy.thermal.include_skin")
         .and_then(|v| v.as_bool())
     {
         cfg.policy.thermal.include_skin = v;
-    }
-    if let Some(v) = patch
-        .get_path("predictor.enabled")
-        .and_then(|v| v.as_bool())
-    {
-        cfg.predictor.enabled = v;
     }
     if let Some(v) = patch
         .get_path("actuator.enable_uclamp_top_app")
@@ -863,7 +843,7 @@ mod tests {
             "POST",
             "/api/action",
             "X-NeuroSched-Token: credential\r\nOrigin: __LOCAL_ORIGIN__\r\n",
-            r#"{"action":"predict"}"#,
+            r#"{"action":"reload"}"#,
         );
         assert!(response.starts_with("HTTP/1.1 200"), "{response}");
     }

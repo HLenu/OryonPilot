@@ -409,6 +409,18 @@ impl FeatureExtractor {
         self.fg_run_len = 0.0;
     }
 
+    pub fn usage_ranking(&self, limit: usize) -> Vec<(String, u32)> {
+        let mut list: Vec<(String, u32)> = self
+            .app_stats
+            .iter()
+            .filter(|(k, _)| *k != "-")
+            .map(|(k, st)| (k.clone(), st.count.min(u32::MAX as u64) as u32))
+            .collect();
+        list.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
+        list.truncate(limit);
+        list
+    }
+
     pub fn push_minute_sample(&mut self, snap: &Snapshot) {
         let cur = MinuteSample::from_snapshot(snap);
         let prev_temp = self.history.back().map(|p| p.cpu_temp_c);

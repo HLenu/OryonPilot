@@ -226,7 +226,7 @@ fn chunked_json_works_and_ambiguous_or_large_declared_bodies_are_rejected() {
     for (headers, body, expected) in [
         (
             "Transfer-Encoding: chunked\r\n",
-            "14\r\n{\"action\":\"predict\"}\r\n0\r\n\r\n",
+            "18\r\n{\"action\":\"reset_model\"}\r\n0\r\n\r\n",
             200,
         ),
         (
@@ -245,7 +245,7 @@ fn chunked_json_works_and_ambiguous_or_large_declared_bodies_are_rejected() {
             "{answer}"
         );
     }
-    assert!(state.with(|data| data.action == Some(Action::PredictNow)));
+    assert!(state.with(|data| data.action == Some(Action::ResetModel)));
 }
 
 #[test]
@@ -278,8 +278,8 @@ fn concurrent_config_updates_preserve_each_committed_patch_before_runtime_reload
     let server = TestServer::new(state.clone(), 8);
     let mut clients = Vec::new();
     for body in [
-        r#"{"predictor":{"min_confidence":0.75}}"#,
-        r#"{"predictor":{"min_samples":42}}"#,
+        r#"{"policy":{"thermal":{"enter_light_c":68.5}}}"#,
+        r#"{"policy":{"memory":{"psi_some_enter":15.0}}}"#,
     ] {
         let addr = server.addr;
         clients.push(thread::spawn(move || {
@@ -293,6 +293,6 @@ fn concurrent_config_updates_preserve_each_committed_patch_before_runtime_reload
         client.join().unwrap();
     }
     let saved = crate::config::Config::load(&state.paths.config()).unwrap();
-    assert_eq!(saved.predictor.min_confidence, 0.75);
-    assert_eq!(saved.predictor.min_samples, 42);
+    assert_eq!(saved.policy.thermal.enter_light_c, 68.5);
+    assert_eq!(saved.policy.memory.psi_some_enter, 15.0);
 }

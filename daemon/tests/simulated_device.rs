@@ -347,12 +347,11 @@ fn memory_and_thermal_telemetry_is_sane() {
 }
 
 #[test]
-fn companion_events_drive_foreground_and_predictor() {
+fn companion_events_drive_foreground_and_launch_window() {
     let (fx, mut rt, paths) = setup("events", RunMode::ObserveOnly);
-    // The companion app log is the documented fallback channel.
+    // The companion app log is polled synchronously on snapshot.
     std::fs::write(paths.companion_log(), "com.tencent.mm\n").unwrap();
     rt.start_event_sources();
-    std::thread::sleep(std::time::Duration::from_millis(2_000));
     rt.tick(120_000);
 
     let fg = rt.shared().with(|d| d.snapshot.apps.foreground.clone());
@@ -870,29 +869,6 @@ fn failed_restore_checkpoint_keeps_the_session_active_and_read_only() {
     );
     rt.shutdown();
     assert!(paths.journal().join("active").exists());
-}
-
-#[test]
-fn prediction_preview_is_published_from_the_current_tick_without_execution() {
-    let (fx, mut rt, _paths) = setup("prediction-preview", RunMode::ObserveOnly);
-    rt.tick(120_000);
-    rt.shared().with(|d| {
-        let json = status_json(d);
-        assert_eq!(d.prediction_preview.at_ms, d.snapshot.ts_ms);
-        assert!(d.prediction_preview.dry_run_only);
-        assert!(!d.prediction_preview.writes_allowed);
-        assert!(!d.prediction_preview.eligible);
-        assert!(!d.prediction_preview.blocked.is_empty());
-        assert_eq!(
-            json.get_path("prediction_policy.writes_allowed")
-                .and_then(|j| j.as_bool()),
-            Some(false)
-        );
-        assert_eq!(d.report.applied(), 0);
-    });
-    assert_eq!(val(&fx, UCLAMP_MIN), "0");
-    assert_eq!(val(&fx, UCLAMP_MAX), "100");
-    rt.shutdown();
 }
 
 #[test]

@@ -2,13 +2,11 @@
 
 pub mod engine;
 pub mod memory_guard;
-pub mod prediction;
 pub mod state;
 pub mod thermal_guard;
 
 pub use engine::Engine;
 pub use memory_guard::MemoryClass;
-pub use prediction::PredictionPreview;
 pub use state::Transition;
 pub use thermal_guard::{ThermalGuard, ThermalPermission};
 

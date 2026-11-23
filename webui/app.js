@@ -74,7 +74,6 @@
       if (state.tab === "cpu") renderCpu(s);
       if (state.tab === "memory") renderMemory(s);
       if (state.tab === "predict") {
-        renderPredict(s.predict, s.predictor, s.prediction_policy);
         if (s.learner) renderLearner(s.learner);
       }
       if (state.tab === "policy") renderPolicy(s.policy);
@@ -378,45 +377,7 @@
     ]);
   }
 
-  /* ---------------- predictor ---------------- */
-  function renderPredict(p, stats, preview = p.policy_preview) {
-    $("p-pkg").textContent = p.predicted_package || "（拒绝预测）";
-    $("p-prob").textContent = `${(p.probability * 100).toFixed(1)}%`;
-    $("p-conf").textContent = `${(p.confidence * 100).toFixed(0)}%`;
-    $("p-samples").textContent = p.sample_count;
-    $("p-acc").textContent = stats && stats.evaluated > 0 ? `${(stats.accuracy * 100).toFixed(0)}%` : "待结算";
-    $("p-reason").textContent = p.reason || "";
-    $("p-feedback").textContent = stats
-      ? `机会 ${stats.opportunities || 0} · 覆盖 ${pct((stats.coverage || 0) * 100, 0)} · 已发出 ${stats.predictions} · 已结算 ${stats.evaluated} · Top1 ${stats.hits} / Top3 ${stats.top3_hits || 0} (${pct((stats.top3_accuracy || 0) * 100, 0)}) · 有效命中 ${pct((stats.effective_accuracy || 0) * 100, 0)} · 超时 ${stats.expired}`
-      : "尚无评估统计";
-    if ($("p-baseline")) {
-      const reasons = stats && stats.refused_reasons
-        ? Object.entries(stats.refused_reasons).map(([k, v]) => `${k}:${v}`).join(" ")
-        : "";
-      $("p-baseline").textContent = stats && stats.evaluated > 0
-        ? `基线对比 · 高频 ${pct((stats.baseline_most_frequent_accuracy || 0) * 100, 1)} (${stats.baseline_most_frequent_hits || 0}) · 回切 ${pct((stats.baseline_previous_accuracy || 0) * 100, 1)} (${stats.baseline_previous_hits || 0})${reasons ? ` · 拒绝 ${reasons}` : ""}`
-        : `基线对比待结算${reasons ? ` · 拒绝 ${reasons}` : ""}`;
-    }
-    $("p-preview").textContent = preview && preview.eligible && preview.profile
-      ? `未来目标只读模拟 ${preview.target_package} · uclamp ${preview.profile.uclamp_min}/${preview.profile.uclamp_max}（0–1024）· ${preview.duration_ms} ms`
-      : `未来目标模拟被阻断 · ${preview ? (preview.blocked || []).join(" / ") || preview.reason : "等待采样"}`;
-    $("p-refused").textContent = p.refused ? "已拒绝（样本或置信度不足）" : "已给出预测";
-
-    const c = $("p-candidates");
-    c.textContent = "";
-    (p.candidates || []).forEach((x) => {
-      const row = el("div", "cand-row");
-      row.appendChild(el("span", "pkg", x.package));
-      const track = el("div", "track");
-      const fill = el("i");
-      fill.style.width = `${Math.min(100, x.score * 100)}%`;
-      track.appendChild(fill);
-      row.appendChild(track);
-      row.appendChild(el("span", "val", `${(x.score * 100).toFixed(1)}%`));
-      c.appendChild(row);
-    });
-  }
-
+  /* ---------------- learner ---------------- */
   function renderLearner(l) {
     if (!l || !$("l-source")) return;
     $("l-source").textContent = `${l.model_source || "embedded"} · ${l.architecture || "CompactGBDT_FQI"}`;
@@ -446,18 +407,14 @@
   }
 
   async function loadPredict() {
-    const [j, l] = await Promise.all([
-      api("predict").catch(() => null),
-      api("learner").catch(() => null),
-    ]);
-    if (l) renderLearner(l);
-    if (!j) return;
-    renderPredict(j, j.stats);
+    const l = await api("learner").catch(() => null);
+    if (!l) return;
+    renderLearner(l);
     const t = $("p-usage");
     t.textContent = "";
-    t.appendChild(thead(["应用", "次数"]));
+    t.appendChild(thead(["应用", "采样分钟数"]));
     const tb = el("tbody");
-    (j.usage || []).forEach((u) => {
+    (l.usage || []).forEach((u) => {
       const tr = el("tr");
       tr.appendChild(el("td", "mono", u.package));
       tr.appendChild(el("td", null, String(u.count)));
@@ -537,8 +494,6 @@
     ["policy.memory.avail_pct_enter", "可用内存进入 %", "number", 0.5],
     ["policy.battery.saver_pct", "省电阈值 %", "number", 1],
     ["policy.app_launch.boost_ms", "启动窗口 ms", "number", 100],
-    ["predictor.min_confidence", "预测置信度下限", "number", 0.05],
-    ["predictor.min_samples", "预测最小样本", "number", 1],
   ];
 
   function getPath(obj, path) {
@@ -732,9 +687,8 @@
   }
 
   function initActions() {
-    $("p-now").addEventListener("click", () => action("predict"));
     $("p-reset").addEventListener("click", () => {
-      if (confirm("重置预测模型？历史统计会清空。")) action("reset_model");
+      if (confirm("重置在线学习状态？累计统计会清空。")) action("reset_model");
     });
     $("s-rollback").addEventListener("click", () => {
       if (confirm("立即把所有已写入的节点恢复为原始值？")) action("rollback");

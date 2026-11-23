@@ -18,7 +18,6 @@ pub struct Config {
     pub api: ApiConfig,
     pub policy: PolicyConfig,
     pub actuator: ActuatorConfig,
-    pub predictor: PredictorConfig,
     pub safety: SafetyConfig,
     pub apps: AppsConfig,
     pub storage: StorageConfig,
@@ -138,15 +137,6 @@ impl Default for Profile {
 }
 
 #[derive(Debug, Clone)]
-pub struct PredictorConfig {
-    pub enabled: bool,
-    pub min_samples: u64,
-    pub min_confidence: f64,
-    pub max_candidates: usize,
-    pub persist_interval_ms: u64,
-}
-
-#[derive(Debug, Clone)]
 pub struct SafetyConfig {
     pub watchdog_interval_ms: u64,
     pub consecutive_failure_limit: u32,
@@ -260,13 +250,6 @@ impl Default for Config {
                 enable_uclamp_top_app: true,
                 enable_sched_util_clamp: false,
                 profiles: default_profiles(),
-            },
-            predictor: PredictorConfig {
-                enabled: true,
-                min_samples: 40,
-                min_confidence: 0.35,
-                max_candidates: 5,
-                persist_interval_ms: 300_000,
             },
             safety: SafetyConfig {
                 watchdog_interval_ms: 10_000,
@@ -508,20 +491,6 @@ impl Config {
         actuator.set("profiles", profiles);
         j.set("actuator", actuator);
 
-        let mut pred = Json::obj();
-        pred.set("enabled", Json::Bool(self.predictor.enabled));
-        pred.set("min_samples", Json::num(self.predictor.min_samples as f64));
-        pred.set("min_confidence", Json::num(self.predictor.min_confidence));
-        pred.set(
-            "max_candidates",
-            Json::num(self.predictor.max_candidates as f64),
-        );
-        pred.set(
-            "persist_interval_ms",
-            Json::num(self.predictor.persist_interval_ms as f64),
-        );
-        j.set("predictor", pred);
-
         let mut safety = Json::obj();
         safety.set(
             "watchdog_interval_ms",
@@ -736,24 +705,6 @@ impl Config {
                     .unwrap_or(d.actuator.enable_sched_util_clamp),
                 profiles: parse_profiles(j, &d),
             },
-            predictor: PredictorConfig {
-                enabled: j
-                    .get_path("predictor.enabled")
-                    .and_then(|v| v.as_bool())
-                    .unwrap_or(d.predictor.enabled),
-                min_samples: ju(j, "predictor.min_samples", d.predictor.min_samples as f64),
-                min_confidence: jf(j, "predictor.min_confidence", d.predictor.min_confidence),
-                max_candidates: ju(
-                    j,
-                    "predictor.max_candidates",
-                    d.predictor.max_candidates as f64,
-                ) as usize,
-                persist_interval_ms: ju(
-                    j,
-                    "predictor.persist_interval_ms",
-                    d.predictor.persist_interval_ms as f64,
-                ),
-            },
             safety: SafetyConfig {
                 watchdog_interval_ms: ju(
                     j,
@@ -846,10 +797,6 @@ impl Config {
         self.policy.min_dwell_ms = self.policy.min_dwell_ms.clamp(500, 120_000);
         self.policy.cooldown_ms = self.policy.cooldown_ms.clamp(0, 300_000);
         self.policy.boot_grace_ms = self.policy.boot_grace_ms.clamp(5_000, 600_000);
-
-        self.predictor.min_samples = self.predictor.min_samples.clamp(5, 100_000);
-        self.predictor.min_confidence = self.predictor.min_confidence.clamp(0.05, 0.95);
-        self.predictor.max_candidates = self.predictor.max_candidates.clamp(1, 20);
 
         self.safety.watchdog_interval_ms = self.safety.watchdog_interval_ms.clamp(1_000, 120_000);
         self.safety.consecutive_failure_limit = self.safety.consecutive_failure_limit.clamp(1, 20);

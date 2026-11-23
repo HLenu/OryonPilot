@@ -77,6 +77,7 @@ pub struct AppEventWatcher {
     running: Arc<AtomicBool>,
     proc_scan_ms: Arc<AtomicU64>,
     logcat_child: Arc<Mutex<Option<Child>>>,
+    companion: Arc<Mutex<Option<(String, u64)>>>,
 }
 
 impl AppEventWatcher {
@@ -87,6 +88,7 @@ impl AppEventWatcher {
             running: Arc::new(AtomicBool::new(false)),
             proc_scan_ms: Arc::new(AtomicU64::new(5_000)),
             logcat_child: Arc::new(Mutex::new(None)),
+            companion: Arc::new(Mutex::new(None)),
         }
     }
 
@@ -100,14 +102,16 @@ impl AppEventWatcher {
         if let Ok(mut st) = self.state.lock() {
             st.started = true;
         }
+        if !companion_log.is_empty() {
+            if let Ok(mut c) = self.companion.lock() {
+                *c = Some((companion_log, 0));
+            }
+        }
         let logcat_ok = root.is_system() && root.exists("/system/bin/logcat");
         if logcat_ok {
             let this = self.clone();
             thread::spawn(move || this.logcat_loop());
         }
-
-        let this = self.clone();
-        thread::spawn(move || this.companion_loop(companion_log));
 
         if root.is_system() {
             let this = self.clone();
@@ -134,6 +138,15 @@ impl AppEventWatcher {
     }
 
     fn snapshot_at(&self, now: u64) -> WatchState {
+        let companion_state = self.companion.lock().ok().and_then(|mut c| c.take());
+        if let Some((path, mut offset)) = companion_state {
+            self.read_companion(&path, &mut offset);
+            if let Ok(mut c) = self.companion.lock() {
+                if c.is_none() {
+                    *c = Some((path, offset));
+                }
+            }
+        }
         let mut state = self.state.lock().map(|s| s.clone()).unwrap_or_default();
         let live_logcat = state.source == AppEventSource::Logcat && state.logcat_alive;
         if !live_logcat && now.saturating_sub(state.last_observed_ms) > SOURCE_STALE_MS {
@@ -275,14 +288,6 @@ impl AppEventWatcher {
                 st.logcat_alive = false;
             }
             thread::sleep(Duration::from_secs(2));
-        }
-    }
-
-    fn companion_loop(&self, path: String) {
-        let mut offset = 0u64;
-        while self.running.load(Ordering::SeqCst) {
-            self.read_companion(&path, &mut offset);
-            thread::sleep(Duration::from_millis(1_500));
         }
     }
 

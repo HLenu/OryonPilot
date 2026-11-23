@@ -1,4 +1,4 @@
-//! Runtime: wires collectors, predictor, policy, actuator and safety together and
+//! Runtime: wires collectors, learner, policy, actuator and safety together and
 //! publishes a single consistent view for the API and the CLI.
 //!
 //! The loop is deliberately boring: sample, decide, apply, publish, sleep. All the
@@ -10,7 +10,6 @@ use crate::collector::{process, Collectors};
 use crate::config::Config;
 use crate::json::Json;
 use crate::policy::{Decision, Engine};
-use crate::predictor::{Prediction, Predictor, Stats};
 use crate::safety::ownership::NodeView;
 use crate::safety::transaction::{Journal, JournalEntry, PendingRecovery};
 use crate::safety::watchdog::{Watchdog, WatchdogStatus};
@@ -25,6 +24,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
+
+const LEARNER_PERSIST_INTERVAL_MS: u64 = 300_000;
 
 #[derive(Debug, Clone, Default)]
 pub struct DeviceInfo {
@@ -152,7 +153,6 @@ fn detect_ksu() -> String {
 pub enum Action {
     Rollback,
     ResetModel,
-    PredictNow,
 }
 
 pub struct Data {
@@ -162,8 +162,6 @@ pub struct Data {
     pub max_tick_ms: f64,
     pub snapshot: Snapshot,
     pub decision: Decision,
-    pub prediction: Prediction,
-    pub prediction_preview: crate::policy::prediction::PredictionPreview,
     pub learner: crate::learner::LearnerSnapshot,
     pub report: crate::actuator::ApplyReport,
     pub history: VecDeque<HistoryPoint>,
@@ -177,7 +175,6 @@ pub struct Data {
     pub recovered: Vec<String>,
     pub capability: Json,
     pub usage: Vec<(String, u32)>,
-    pub predictor_stats: Stats,
     pub eligible: Vec<(PolicyState, String)>,
     pub mode: RunMode,
     pub reload_requested: bool,
@@ -202,8 +199,6 @@ impl Default for Data {
             max_tick_ms: 0.0,
             snapshot: Snapshot::default(),
             decision: Decision::default(),
-            prediction: Prediction::refused("waiting for a trusted foreground sample", 0),
-            prediction_preview: Default::default(),
             learner: Default::default(),
             report: Default::default(),
             history: VecDeque::new(),
@@ -217,7 +212,6 @@ impl Default for Data {
             recovered: Vec::new(),
             capability: Json::Null,
             usage: Vec::new(),
-            predictor_stats: Stats::default(),
             eligible: Vec::new(),
             mode: RunMode::ObserveOnly,
             reload_requested: false,
@@ -267,7 +261,6 @@ pub struct Runtime {
     root: SysRoot,
     shared: Arc<Shared>,
     collectors: Collectors,
-    predictor: Predictor,
     learner: crate::learner::Learner,
     engine: Engine,
     actuator: Actuator,
@@ -277,7 +270,6 @@ pub struct Runtime {
     journal: Journal,
     last_history_ms: u64,
     last_model_save_ms: u64,
-    last_predict_ms: u64,
     thermal_fail_closed: bool,
     stop: Arc<AtomicBool>,
     _lock: crate::safety::lock::RuntimeLock,
@@ -425,13 +417,6 @@ impl Runtime {
             cfg.storage.telemetry,
         );
 
-        let mut predictor = Predictor::new();
-        if let Ok(text) = std::fs::read_to_string(paths.model()) {
-            if let Ok(j) = crate::json::parse(&text) {
-                predictor = Predictor::from_json(&j);
-            }
-        }
-        predictor.set_ignored_packages(&cfg.apps.launchers);
         let learner = crate::learner::Learner::load(&paths.sched_model(), &paths.learner_state());
 
         let data = Data {
@@ -481,7 +466,6 @@ impl Runtime {
             root,
             shared,
             collectors,
-            predictor,
             learner,
             engine,
             actuator,
@@ -491,7 +475,6 @@ impl Runtime {
             journal,
             last_history_ms: 0,
             last_model_save_ms: boot_ms,
-            last_predict_ms: 0,
             thermal_fail_closed: false,
             stop: Arc::new(AtomicBool::new(false)),
             _lock: runtime_lock,
@@ -523,22 +506,9 @@ impl Runtime {
 
         let mut snap = self.collectors.sample(&self.root, now);
         snap.wall_ts_ms = wall_ms;
-        for ev in self.collectors.drain_app_events() {
-            self.predictor.observe(&ev);
-        }
+        let _ = self.collectors.drain_app_events();
 
-        let trust = snap.apps.source.map(|s| s.trust()).unwrap_or(0.0);
-        let (cfg_pred, launchers) = self
-            .shared
-            .with(|d| (d.config.predictor.clone(), d.config.apps.launchers.clone()));
-        if now.saturating_sub(self.last_predict_ms) >= 5_000 {
-            let pred =
-                self.predictor
-                    .predict(wall_ms, snap.apps.foreground.as_deref(), &cfg_pred, trust);
-            self.last_predict_ms = now;
-            self.shared.mutate(|d| d.prediction = pred);
-        }
-
+        let launchers = self.shared.with(|d| d.config.apps.launchers.clone());
         let is_launcher = snap
             .apps
             .foreground
@@ -572,9 +542,6 @@ impl Runtime {
             self.thermal_fail_closed = fail_closed;
         }
         let cfg = self.shared.with(|d| d.config.clone());
-        let prediction_preview = self
-            .shared
-            .with(|d| crate::policy::prediction::preview(&snap, &d.prediction, &decision, &cfg));
         let configured_mode = cfg.mode;
         let effective_mode = effective_mode(
             &cfg,
@@ -632,15 +599,10 @@ impl Runtime {
             });
         }
 
-        if (self.predictor.is_dirty() || self.learner.is_dirty())
-            && now.saturating_sub(self.last_model_save_ms) >= cfg_pred.persist_interval_ms
+        if self.learner.is_dirty()
+            && now.saturating_sub(self.last_model_save_ms) >= LEARNER_PERSIST_INTERVAL_MS
         {
-            if self.predictor.is_dirty() {
-                self.save_model();
-            }
-            if self.learner.is_dirty() {
-                let _ = self.learner.save_state(&self.paths.learner_state());
-            }
+            let _ = self.learner.save_state(&self.paths.learner_state());
             self.last_model_save_ms = now;
         }
 
@@ -661,8 +623,7 @@ impl Runtime {
             })
             .collect();
 
-        let usage = self.predictor.usage_ranking(12);
-        let stats = self.predictor.stats().clone();
+        let usage = self.learner.usage_ranking(12);
         let nodes = self.actuator.nodes();
         let journal_recent = self.journal.recent(50);
         let capability = self.actuator.capability_json();
@@ -688,7 +649,6 @@ impl Runtime {
             d.max_tick_ms = d.max_tick_ms.max(tick_ms);
             d.snapshot = snap;
             d.decision = decision;
-            d.prediction_preview = prediction_preview;
             d.learner = learner_snap;
             d.report = report;
             d.watchdog = wd_text;
@@ -697,7 +657,6 @@ impl Runtime {
             d.journal = journal_recent;
             d.capability = capability;
             d.usage = usage;
-            d.predictor_stats = stats;
             d.eligible = d.decision.eligible.clone();
             d.transitions = transitions;
             d.mode = mode;
@@ -734,46 +693,25 @@ impl Runtime {
         }
 
         match action {
-            Some(Action::Rollback) | Some(Action::ResetModel) => {
-                if matches!(action, Some(Action::Rollback)) {
-                    self.restore_owned("manual rollback");
-                    self.actuator.set_mode(RunMode::ObserveOnly);
-                    self.shared.mutate(|d| {
-                        d.config.mode = RunMode::ObserveOnly;
-                        d.config.actuator.enabled = false;
-                    });
-                    let cfg = self.shared.with(|d| d.config.clone());
-                    if let Err(err) = cfg.save(&self.paths.config()) {
-                        self.shared.logger.warn(
-                            "config",
-                            format!(
-                                "rollback stays read-only in memory, persistence failed: {err}"
-                            ),
-                        );
-                    }
-                }
-                if matches!(action, Some(Action::ResetModel)) {
-                    let launchers = self.shared.with(|d| d.config.apps.launchers.clone());
-                    self.predictor = Predictor::new();
-                    self.predictor.set_ignored_packages(&launchers);
-                    self.learner.reset();
-                    let _ = std::fs::remove_file(self.paths.model());
-                    let _ = std::fs::remove_file(self.paths.learner_state());
-                    self.shared.logger.warn("predictor", "model reset");
+            Some(Action::Rollback) => {
+                self.restore_owned("manual rollback");
+                self.actuator.set_mode(RunMode::ObserveOnly);
+                self.shared.mutate(|d| {
+                    d.config.mode = RunMode::ObserveOnly;
+                    d.config.actuator.enabled = false;
+                });
+                let cfg = self.shared.with(|d| d.config.clone());
+                if let Err(err) = cfg.save(&self.paths.config()) {
+                    self.shared.logger.warn(
+                        "config",
+                        format!("rollback stays read-only in memory, persistence failed: {err}"),
+                    );
                 }
             }
-            Some(Action::PredictNow) => {
-                let (fg, trust) = self.shared.with(|d| {
-                    (
-                        d.snapshot.apps.foreground.clone(),
-                        d.snapshot.apps.source.map(|s| s.trust()).unwrap_or(0.0),
-                    )
-                });
-                let cfg = self.shared.with(|d| d.config.predictor.clone());
-                let pred =
-                    self.predictor
-                        .predict(crate::util::now_ms(), fg.as_deref(), &cfg, trust);
-                self.shared.mutate(|d| d.prediction = pred);
+            Some(Action::ResetModel) => {
+                self.learner.reset();
+                let _ = std::fs::remove_file(self.paths.learner_state());
+                self.shared.logger.warn("learner", "model reset");
             }
             None => {}
         }
@@ -788,7 +726,6 @@ impl Runtime {
             cfg.actuator.profiles.clone(),
             cfg.apps.launchers.clone(),
         );
-        self.predictor.set_ignored_packages(&cfg.apps.launchers);
         self.learner.reload_model(&self.paths.sched_model());
         let mode = effective_mode(
             &cfg,
@@ -828,17 +765,6 @@ impl Runtime {
         }
         self.actuator.forget();
         true
-    }
-
-    pub fn save_model(&mut self) {
-        let j = self.predictor.to_json();
-        let tmp = self.paths.model().with_extension("json.tmp");
-        if std::fs::write(&tmp, j.to_string()).is_ok() {
-            crate::storage::secure_file(&tmp);
-            if std::fs::rename(&tmp, self.paths.model()).is_ok() {
-                self.predictor.mark_saved();
-            }
-        }
     }
 
     /// Blocking control loop.
@@ -910,9 +836,6 @@ impl Runtime {
 
     pub fn shutdown(&mut self) {
         self.shared.logger.info("runtime", "shutting down");
-        if self.predictor.is_dirty() {
-            self.save_model();
-        }
         if self.learner.is_dirty() {
             let _ = self.learner.save_state(&self.paths.learner_state());
         }
@@ -951,7 +874,6 @@ pub fn diagnostics_json(d: &Data) -> Json {
         "psi",
         "thermal",
         "battery",
-        "predictor",
     ] {
         if let Some(value) = status.get(key) {
             report.set(key, value.clone());
@@ -1016,7 +938,6 @@ pub fn status_json(d: &Data) -> Json {
     j.set("configured_mode", Json::str(d.configured_mode.as_str()));
     j.set("ts_ms", Json::num(d.snapshot.ts_ms as f64));
     j.set("wall_ts_ms", Json::num(d.snapshot.wall_ts_ms as f64));
-    j.set("prediction_policy", d.prediction_preview.to_json());
     j.set(
         "iso",
         Json::str(crate::util::iso_utc(crate::util::now_ms())),
@@ -1033,7 +954,6 @@ pub fn status_json(d: &Data) -> Json {
     );
     j.set("daemon", daemon);
     j.set("policy", d.decision.to_json());
-    j.set("predict", d.prediction.to_json());
     j.set("learner", d.learner.to_json());
 
     // CPU
@@ -1284,8 +1204,6 @@ pub fn status_json(d: &Data) -> Json {
     safety.set("capability", d.capability.clone());
     j.set("safety", safety);
 
-    j.set("predictor", d.predictor_stats.to_json());
-
     j.set(
         "transitions",
         Json::Arr(
@@ -1436,34 +1354,6 @@ mod tests {
         assert_eq!(
             effective_mode(&cfg, &SysRoot::system(), false),
             RunMode::ObserveOnly
-        );
-    }
-
-    #[test]
-    fn status_distinguishes_issued_forecasts_from_evaluated_forecasts() {
-        let data = Data {
-            predictor_stats: Stats {
-                events: 40,
-                predictions: 2,
-                evaluated: 1,
-                hits: 1,
-                ..Default::default()
-            },
-            ..Default::default()
-        };
-        let json = status_json(&data);
-        assert_eq!(
-            json.get_path("predictor.predictions")
-                .and_then(Json::as_u64),
-            Some(2)
-        );
-        assert_eq!(
-            json.get_path("predictor.evaluated").and_then(Json::as_u64),
-            Some(1)
-        );
-        assert_eq!(
-            json.get_path("predictor.accuracy").and_then(Json::as_f64),
-            Some(1.0)
         );
     }
 

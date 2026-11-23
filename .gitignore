@@ -26,6 +26,7 @@ ml/data/
 ml/.venv/
 ml/cache/
 ml/artifacts/
+ml/results/*.zip
 ml/colab/oryon_sft_data.json
 
 # Python bytecode

@@ -16,7 +16,6 @@ pub mod engine;
 pub mod json;
 pub mod learner;
 pub mod policy;
-pub mod predictor;
 pub mod safety;
 pub mod storage;
 pub mod sys;

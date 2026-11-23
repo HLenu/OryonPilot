@@ -44,9 +44,6 @@ impl Paths {
             .clone()
             .unwrap_or_else(|| self.root.join("config.json"))
     }
-    pub fn model(&self) -> PathBuf {
-        self.root.join("model.json")
-    }
     pub fn sched_model(&self) -> PathBuf {
         self.root.join("sched_model.json")
     }

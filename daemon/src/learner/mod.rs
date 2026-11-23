@@ -260,6 +260,10 @@ impl Learner {
         self.dirty = false;
     }
 
+    pub fn usage_ranking(&self, limit: usize) -> Vec<(String, u32)> {
+        self.extractor.usage_ranking(limit)
+    }
+
     pub fn is_dirty(&self) -> bool {
         self.dirty
     }
