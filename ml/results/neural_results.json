@@ -1,0 +1,228 @@
+{
+  "device": "cpu",
+  "TCN": {
+    "params": 30538,
+    "weights_fp32_kb": 119.29,
+    "train_sec": 10.02,
+    "cpu_latency_ms": 0.5175,
+    "th_burst": 0.6,
+    "th_overheat": 0.425,
+    "cpu_next": {
+      "mae": 8.8204,
+      "rmse": 13.2901
+    },
+    "burst": {
+      "roc_auc": 0.6635,
+      "pr_auc": 0.3433,
+      "f1": 0.4346,
+      "acc": 0.614
+    },
+    "t1": {
+      "mae": 6.2309,
+      "rmse": 9.6967
+    },
+    "t3": {
+      "mae": 6.3985,
+      "rmse": 9.9088
+    },
+    "overheat_3m": {
+      "roc_auc": 0.6232,
+      "pr_auc": 0.1104,
+      "f1": 0.1779,
+      "acc": 0.4601
+    },
+    "action": {
+      "acc": 0.4202,
+      "macro_f1": 0.4437,
+      "weighted_f1": 0.4236
+    }
+  },
+  "GRU": {
+    "params": 52938,
+    "weights_fp32_kb": 206.79,
+    "train_sec": 16.46,
+    "cpu_latency_ms": 0.8,
+    "th_burst": 0.35,
+    "th_overheat": 0.475,
+    "cpu_next": {
+      "mae": 8.5917,
+      "rmse": 13.3694
+    },
+    "burst": {
+      "roc_auc": 0.6649,
+      "pr_auc": 0.3653,
+      "f1": 0.4516,
+      "acc": 0.5197
+    },
+    "t1": {
+      "mae": 5.9246,
+      "rmse": 9.5927
+    },
+    "t3": {
+      "mae": 6.2405,
+      "rmse": 10.0317
+    },
+    "overheat_3m": {
+      "roc_auc": 0.5848,
+      "pr_auc": 0.0953,
+      "f1": 0.1695,
+      "acc": 0.4275
+    },
+    "action": {
+      "acc": 0.5169,
+      "macro_f1": 0.4698,
+      "weighted_f1": 0.5177
+    }
+  },
+  "MiniTransformer": {
+    "params": 70922,
+    "weights_fp32_kb": 277.04,
+    "train_sec": 27.09,
+    "cpu_latency_ms": 0.4354,
+    "th_burst": 0.425,
+    "th_overheat": 0.3,
+    "cpu_next": {
+      "mae": 8.5032,
+      "rmse": 13.1803
+    },
+    "burst": {
+      "roc_auc": 0.6683,
+      "pr_auc": 0.3783,
+      "f1": 0.4516,
+      "acc": 0.5674
+    },
+    "t1": {
+      "mae": 5.943,
+      "rmse": 9.5865
+    },
+    "t3": {
+      "mae": 6.1861,
+      "rmse": 9.9011
+    },
+    "overheat_3m": {
+      "roc_auc": 0.5491,
+      "pr_auc": 0.0927,
+      "f1": 0.1551,
+      "acc": 0.4551
+    },
+    "action": {
+      "acc": 0.541,
+      "macro_f1": 0.5178,
+      "weighted_f1": 0.5412
+    }
+  },
+  "TinyMLP": {
+    "params": 4930,
+    "weights_fp32_kb": 19.26,
+    "train_sec": 7.95,
+    "cpu_latency_ms": 0.0711,
+    "th_burst": 0.475,
+    "th_overheat": 0.35,
+    "cpu_next": {
+      "mae": 8.9233,
+      "rmse": 13.3265
+    },
+    "burst": {
+      "roc_auc": 0.6689,
+      "pr_auc": 0.3566,
+      "f1": 0.4468,
+      "acc": 0.5562
+    },
+    "t1": {
+      "mae": 6.8445,
+      "rmse": 10.4607
+    },
+    "t3": {
+      "mae": 6.8792,
+      "rmse": 10.6033
+    },
+    "overheat_3m": {
+      "roc_auc": 0.5767,
+      "pr_auc": 0.0966,
+      "f1": 0.157,
+      "acc": 0.2702
+    },
+    "action": {
+      "acc": 0.4691,
+      "macro_f1": 0.4749,
+      "weighted_f1": 0.489
+    },
+    "exported_json_kb": 106.99
+  },
+  "TinyMLP_Vanilla": {
+    "params": 4930,
+    "weights_fp32_kb": 19.26,
+    "train_sec": 7.95,
+    "cpu_latency_ms": 0.0711,
+    "th_burst": 0.475,
+    "th_overheat": 0.35,
+    "cpu_next": {
+      "mae": 8.9233,
+      "rmse": 13.3265
+    },
+    "burst": {
+      "roc_auc": 0.6689,
+      "pr_auc": 0.3566,
+      "f1": 0.4468,
+      "acc": 0.5562
+    },
+    "t1": {
+      "mae": 6.8445,
+      "rmse": 10.4607
+    },
+    "t3": {
+      "mae": 6.8792,
+      "rmse": 10.6033
+    },
+    "overheat_3m": {
+      "roc_auc": 0.5767,
+      "pr_auc": 0.0966,
+      "f1": 0.157,
+      "acc": 0.2702
+    },
+    "action": {
+      "acc": 0.4691,
+      "macro_f1": 0.4749,
+      "weighted_f1": 0.489
+    },
+    "exported_json_kb": 106.99
+  },
+  "TinyMLP_Distilled": {
+    "params": 4930,
+    "weights_fp32_kb": 19.26,
+    "distill_alpha": 0.5,
+    "distill_temp": 2.0,
+    "cpu_latency_ms": 0.0839,
+    "th_burst": 0.475,
+    "th_overheat": 0.25,
+    "cpu_next": {
+      "mae": 8.7903,
+      "rmse": 13.1933
+    },
+    "burst": {
+      "roc_auc": 0.6703,
+      "pr_auc": 0.3557,
+      "f1": 0.4507,
+      "acc": 0.5275
+    },
+    "t1": {
+      "mae": 6.3798,
+      "rmse": 9.8579
+    },
+    "t3": {
+      "mae": 6.6761,
+      "rmse": 10.2037
+    },
+    "overheat_3m": {
+      "roc_auc": 0.5656,
+      "pr_auc": 0.0895,
+      "f1": 0.1579,
+      "acc": 0.4489
+    },
+    "action": {
+      "acc": 0.5444,
+      "macro_f1": 0.4631,
+      "weighted_f1": 0.537
+    }
+  }
+}

@@ -1,0 +1,274 @@
+{
+  "baselines": {
+    "Persistence": {
+      "cpu_next": {
+        "mae": 10.4421,
+        "rmse": 17.1244
+      },
+      "burst": {
+        "roc_auc": 0.5662,
+        "pr_auc": 0.2782,
+        "f1": 0.3444,
+        "acc": 0.6792
+      },
+      "t1": {
+        "mae": 6.6856,
+        "rmse": 11.4739
+      },
+      "t3": {
+        "mae": 7.8674,
+        "rmse": 12.7694
+      },
+      "overheat_3m": {
+        "roc_auc": 0.5079,
+        "pr_auc": 0.0809,
+        "f1": 0.0628,
+        "acc": 0.8994
+      },
+      "action": {
+        "acc": 0.6006,
+        "macro_f1": 0.574,
+        "weighted_f1": 0.5969
+      }
+    },
+    "EWMA_3m": {
+      "cpu_next": {
+        "mae": 9.4497,
+        "rmse": 14.7759
+      },
+      "t1": {
+        "mae": 6.3251,
+        "rmse": 10.0996
+      },
+      "t3": {
+        "mae": 6.8972,
+        "rmse": 10.6698
+      }
+    },
+    "Linear_Ridge_LogReg": {
+      "cpu_next": {
+        "mae": 8.6715,
+        "rmse": 13.1842
+      },
+      "burst": {
+        "roc_auc": 0.6684,
+        "pr_auc": 0.3573,
+        "f1": 0.43,
+        "acc": 0.6247
+      },
+      "t1": {
+        "mae": 6.0834,
+        "rmse": 9.1899
+      },
+      "t3": {
+        "mae": 6.3972,
+        "rmse": 9.5583
+      },
+      "overheat_3m": {
+        "roc_auc": 0.59,
+        "pr_auc": 0.0923,
+        "f1": 0.1605,
+        "acc": 0.2831
+      },
+      "action": {
+        "acc": 0.3966,
+        "macro_f1": 0.358,
+        "weighted_f1": 0.3887
+      },
+      "cpu_latency_ms": 0.0028
+    }
+  },
+  "markov_task4": {
+    "next_tier": {
+      "acc": 0.4894,
+      "macro_f1": 0.3197,
+      "weighted_f1": 0.5133
+    },
+    "next_app_top1_acc": 0.1712,
+    "next_app_top3_acc": 0.3855,
+    "n_test": 1279
+  },
+  "gbdt": {
+    "LightGBM": {
+      "cpu_next": {
+        "mae": 8.7524,
+        "rmse": 13.1984
+      },
+      "burst": {
+        "roc_auc": 0.6683,
+        "pr_auc": 0.367,
+        "f1": 0.4503,
+        "acc": 0.5404
+      },
+      "t1": {
+        "mae": 5.9923,
+        "rmse": 9.1707
+      },
+      "t3": {
+        "mae": 6.3574,
+        "rmse": 9.4925
+      },
+      "overheat_3m": {
+        "roc_auc": 0.6075,
+        "pr_auc": 0.0965,
+        "f1": 0.1807,
+        "acc": 0.3427
+      },
+      "action": {
+        "acc": 0.6022,
+        "macro_f1": 0.5634,
+        "weighted_f1": 0.5941
+      },
+      "task4_next_tier": {
+        "acc": 0.6122,
+        "macro_f1": 0.3526,
+        "weighted_f1": 0.6209
+      },
+      "task4_next_app_top1": 0.1306,
+      "task4_next_app_top3": 0.4887,
+      "cpu_latency_ms": 0.8017,
+      "model_bundle_kb": 6099.8,
+      "top_features_action": [
+        {
+          "feature": "batt_pct_norm",
+          "importance": 1589
+        },
+        {
+          "feature": "cpu_pct",
+          "importance": 1560
+        },
+        {
+          "feature": "hour_sin",
+          "importance": 1505
+        },
+        {
+          "feature": "mem_avail_pct",
+          "importance": 1296
+        },
+        {
+          "feature": "hour_cos",
+          "importance": 1288
+        },
+        {
+          "feature": "swap_used_gb",
+          "importance": 1247
+        },
+        {
+          "feature": "batt_temp_c",
+          "importance": 1069
+        },
+        {
+          "feature": "cpu_mean_15",
+          "importance": 1018
+        },
+        {
+          "feature": "d_mem_1m",
+          "importance": 954
+        },
+        {
+          "feature": "temp_diff_cpu_batt",
+          "importance": 938
+        },
+        {
+          "feature": "temp_mean_15",
+          "importance": 920
+        },
+        {
+          "feature": "psi_some_mean_15",
+          "importance": 919
+        },
+        {
+          "feature": "cpu_std_5",
+          "importance": 899
+        },
+        {
+          "feature": "cpu_lag_5",
+          "importance": 892
+        },
+        {
+          "feature": "cpu_mean_3",
+          "importance": 841
+        }
+      ],
+      "top_features_overheat": [
+        {
+          "feature": "temp_max_15",
+          "importance": 11
+        },
+        {
+          "feature": "temp_max_10",
+          "importance": 9
+        },
+        {
+          "feature": "mem_avail_pct",
+          "importance": 8
+        },
+        {
+          "feature": "batt_temp_c",
+          "importance": 8
+        },
+        {
+          "feature": "hour_sin",
+          "importance": 8
+        },
+        {
+          "feature": "hour_cos",
+          "importance": 8
+        },
+        {
+          "feature": "app_dtemp_mean",
+          "importance": 8
+        },
+        {
+          "feature": "psi_some_mean_5",
+          "importance": 8
+        },
+        {
+          "feature": "zram_ratio",
+          "importance": 7
+        },
+        {
+          "feature": "batt_pct_norm",
+          "importance": 7
+        },
+        {
+          "feature": "temp_max_3",
+          "importance": 7
+        },
+        {
+          "feature": "psi_some_mean_15",
+          "importance": 6
+        },
+        {
+          "feature": "app_freq_log",
+          "importance": 5
+        },
+        {
+          "feature": "temp_mean_3",
+          "importance": 5
+        },
+        {
+          "feature": "cpu_mean_15",
+          "importance": 5
+        }
+      ]
+    },
+    "HistGradientBoosting": {
+      "cpu_next": {
+        "mae": 9.3404,
+        "rmse": 13.6426
+      },
+      "overheat_3m": {
+        "roc_auc": 0.5734,
+        "pr_auc": 0.1041,
+        "f1": 0.1632,
+        "acc": 0.4528
+      },
+      "action": {
+        "acc": 0.6376,
+        "macro_f1": 0.5423,
+        "weighted_f1": 0.605
+      }
+    }
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "cpu_next": {
+    "mae": 8.8933,
+    "rmse": 13.32
+  },
+  "burst": {
+    "roc_auc": 0.6682,
+    "pr_auc": 0.3622,
+    "f1": 0.4448,
+    "acc": 0.6017
+  },
+  "t1": {
+    "mae": 6.0867,
+    "rmse": 9.4656
+  },
+  "t3": {
+    "mae": 6.3485,
+    "rmse": 9.754
+  },
+  "overheat_3m": {
+    "roc_auc": 0.6067,
+    "pr_auc": 0.108,
+    "f1": 0.1798,
+    "acc": 0.4157
+  },
+  "action": {
+    "acc": 0.6994,
+    "macro_f1": 0.5452,
+    "weighted_f1": 0.6178
+  },
+  "max_tree_parity_err": 0.000422,
+  "val_score": 0.7813,
+  "num_leaves": 7,
+  "n_reg_trees": 18,
+  "n_act_trees_per_class": 12,
+  "total_trees": 150,
+  "json_kb": 51.46,
+  "use_mild_weights": true
+}

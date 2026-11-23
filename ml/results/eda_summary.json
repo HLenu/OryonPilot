@@ -1,0 +1,846 @@
+{
+  "rows_valid": 14833,
+  "time_start_utc": "2026-11-07T13:55:24+00:00",
+  "time_end_utc": "2026-11-23T11:51:50+00:00",
+  "span_days": 15.91,
+  "contiguous_segments": 730,
+  "dt_sec_quantiles": {
+    "min": 60.0,
+    "p05": 60.0,
+    "p25": 61.0,
+    "p50": 61.0,
+    "p75": 61.0,
+    "p90": 72.0,
+    "p95": 177.0,
+    "p97": 304.04,
+    "p99": 637.0,
+    "max": 6761.0,
+    "mean": 92.702,
+    "std": 231.711
+  },
+  "distributions": {
+    "cpu_pct": {
+      "min": 1.1,
+      "p05": 2.5,
+      "p25": 4.8,
+      "p50": 12.0,
+      "p75": 21.9,
+      "p90": 29.9,
+      "p95": 38.1,
+      "p97": 45.8,
+      "p99": 70.1,
+      "max": 99.9,
+      "mean": 15.308,
+      "std": 13.513
+    },
+    "prime_mhz": {
+      "min": 1018.0,
+      "p05": 1018.0,
+      "p25": 1018.0,
+      "p50": 1018.0,
+      "p75": 1018.0,
+      "p90": 1958.0,
+      "p95": 2650.0,
+      "p97": 3283.0,
+      "p99": 4090.0,
+      "max": 4320.0,
+      "mean": 1229.833,
+      "std": 621.162
+    },
+    "mem_avail_mb": {
+      "min": 1251.0,
+      "p05": 3445.0,
+      "p25": 3784.0,
+      "p50": 4117.0,
+      "p75": 4650.0,
+      "p90": 5514.8,
+      "p95": 6045.0,
+      "p97": 6437.04,
+      "p99": 11014.0,
+      "max": 11649.0,
+      "mean": 4403.572,
+      "std": 1127.759
+    },
+    "swap_used_mb": {
+      "min": 189.0,
+      "p05": 4030.0,
+      "p25": 6232.0,
+      "p50": 7351.0,
+      "p75": 8437.0,
+      "p90": 9392.0,
+      "p95": 9944.0,
+      "p97": 10318.0,
+      "p99": 11202.72,
+      "max": 12183.0,
+      "mean": 7229.07,
+      "std": 1855.69
+    },
+    "zram_ratio": {
+      "min": 2.59,
+      "p05": 2.78,
+      "p25": 2.85,
+      "p50": 2.91,
+      "p75": 3.0,
+      "p90": 3.06,
+      "p95": 3.12,
+      "p97": 3.74,
+      "p99": 4.04,
+      "max": 4.41,
+      "mean": 2.952,
+      "std": 0.208
+    },
+    "psi_some10": {
+      "min": 0.0,
+      "p05": 0.0,
+      "p25": 0.0,
+      "p50": 0.01,
+      "p75": 0.31,
+      "p90": 1.22,
+      "p95": 2.16,
+      "p97": 2.9,
+      "p99": 5.104,
+      "max": 20.62,
+      "mean": 0.408,
+      "std": 1.043
+    },
+    "psi_full10": {
+      "min": 0.0,
+      "p05": 0.0,
+      "p25": 0.0,
+      "p50": 0.0,
+      "p75": 0.24,
+      "p90": 0.988,
+      "p95": 1.69,
+      "p97": 2.26,
+      "p99": 3.997,
+      "max": 12.35,
+      "mean": 0.321,
+      "std": 0.819
+    },
+    "kswapd_pct": {
+      "min": 0.0,
+      "p05": 0.0,
+      "p25": 0.0,
+      "p50": 0.0,
+      "p75": 0.0,
+      "p90": 1.0,
+      "p95": 6.9,
+      "p97": 14.908,
+      "p99": 44.8,
+      "max": 100.0,
+      "mean": 1.563,
+      "std": 7.772
+    },
+    "cpu_temp_c": {
+      "min": 17.7,
+      "p05": 29.7,
+      "p25": 38.2,
+      "p50": 43.6,
+      "p75": 49.0,
+      "p90": 58.3,
+      "p95": 66.96,
+      "p97": 75.7,
+      "p99": 93.0,
+      "max": 103.1,
+      "mean": 45.171,
+      "std": 11.698
+    },
+    "batt_temp_c": {
+      "min": 13.5,
+      "p05": 23.9,
+      "p25": 32.3,
+      "p50": 35.5,
+      "p75": 37.8,
+      "p90": 39.4,
+      "p95": 40.4,
+      "p97": 41.2,
+      "p99": 43.0,
+      "max": 46.3,
+      "mean": 34.466,
+      "std": 4.858
+    },
+    "batt_pct": {
+      "min": 1.0,
+      "p05": 27.0,
+      "p25": 53.0,
+      "p50": 73.0,
+      "p75": 90.0,
+      "p90": 100.0,
+      "p95": 100.0,
+      "p97": 100.0,
+      "p99": 100.0,
+      "max": 100.0,
+      "mean": 69.872,
+      "std": 23.526
+    }
+  },
+  "state_counts_recorded": {
+    "SAFE_MODE": 11515,
+    "THERMAL_GUARD": 1633,
+    "IDLE": 972,
+    "FOREGROUND": 503,
+    "BATTERY_SAVER": 138,
+    "MEMORY_PRESSURE": 48,
+    "BALANCED": 17,
+    "APP_LAUNCH": 7
+  },
+  "burst_rate": 0.2127,
+  "p_burst_next_given_burst": 0.3777,
+  "p_burst_next_given_calm": 0.1677,
+  "correlations": {
+    "cpu_pct": {
+      "cpu_pct": 1.0,
+      "prime_mhz": 0.393,
+      "mem_avail_mb": -0.267,
+      "swap_used_mb": 0.082,
+      "zram_ratio": -0.06,
+      "psi_some10": 0.436,
+      "psi_full10": 0.392,
+      "kswapd_pct": 0.539,
+      "cpu_temp_c": 0.665,
+      "batt_temp_c": 0.23,
+      "batt_pct": -0.147
+    },
+    "prime_mhz": {
+      "cpu_pct": 0.393,
+      "prime_mhz": 1.0,
+      "mem_avail_mb": -0.103,
+      "swap_used_mb": 0.026,
+      "zram_ratio": -0.01,
+      "psi_some10": 0.216,
+      "psi_full10": 0.203,
+      "kswapd_pct": 0.255,
+      "cpu_temp_c": 0.392,
+      "batt_temp_c": -0.015,
+      "batt_pct": -0.036
+    },
+    "mem_avail_mb": {
+      "cpu_pct": -0.267,
+      "prime_mhz": -0.103,
+      "mem_avail_mb": 1.0,
+      "swap_used_mb": -0.628,
+      "zram_ratio": 0.183,
+      "psi_some10": -0.131,
+      "psi_full10": -0.127,
+      "kswapd_pct": -0.098,
+      "cpu_temp_c": -0.203,
+      "batt_temp_c": -0.055,
+      "batt_pct": 0.156
+    },
+    "swap_used_mb": {
+      "cpu_pct": 0.082,
+      "prime_mhz": 0.026,
+      "mem_avail_mb": -0.628,
+      "swap_used_mb": 1.0,
+      "zram_ratio": -0.23,
+      "psi_some10": 0.125,
+      "psi_full10": 0.137,
+      "kswapd_pct": 0.068,
+      "cpu_temp_c": 0.035,
+      "batt_temp_c": -0.064,
+      "batt_pct": -0.028
+    },
+    "zram_ratio": {
+      "cpu_pct": -0.06,
+      "prime_mhz": -0.01,
+      "mem_avail_mb": 0.183,
+      "swap_used_mb": -0.23,
+      "zram_ratio": 1.0,
+      "psi_some10": -0.002,
+      "psi_full10": 0.001,
+      "kswapd_pct": -0.016,
+      "cpu_temp_c": -0.076,
+      "batt_temp_c": -0.105,
+      "batt_pct": 0.137
+    },
+    "psi_some10": {
+      "cpu_pct": 0.436,
+      "prime_mhz": 0.216,
+      "mem_avail_mb": -0.131,
+      "swap_used_mb": 0.125,
+      "zram_ratio": -0.002,
+      "psi_some10": 1.0,
+      "psi_full10": 0.972,
+      "kswapd_pct": 0.401,
+      "cpu_temp_c": 0.479,
+      "batt_temp_c": 0.114,
+      "batt_pct": -0.05
+    },
+    "psi_full10": {
+      "cpu_pct": 0.392,
+      "prime_mhz": 0.203,
+      "mem_avail_mb": -0.127,
+      "swap_used_mb": 0.137,
+      "zram_ratio": 0.001,
+      "psi_some10": 0.972,
+      "psi_full10": 1.0,
+      "kswapd_pct": 0.375,
+      "cpu_temp_c": 0.446,
+      "batt_temp_c": 0.113,
+      "batt_pct": -0.05
+    },
+    "kswapd_pct": {
+      "cpu_pct": 0.539,
+      "prime_mhz": 0.255,
+      "mem_avail_mb": -0.098,
+      "swap_used_mb": 0.068,
+      "zram_ratio": -0.016,
+      "psi_some10": 0.401,
+      "psi_full10": 0.375,
+      "kswapd_pct": 1.0,
+      "cpu_temp_c": 0.339,
+      "batt_temp_c": 0.048,
+      "batt_pct": -0.038
+    },
+    "cpu_temp_c": {
+      "cpu_pct": 0.665,
+      "prime_mhz": 0.392,
+      "mem_avail_mb": -0.203,
+      "swap_used_mb": 0.035,
+      "zram_ratio": -0.076,
+      "psi_some10": 0.479,
+      "psi_full10": 0.446,
+      "kswapd_pct": 0.339,
+      "cpu_temp_c": 1.0,
+      "batt_temp_c": 0.515,
+      "batt_pct": -0.139
+    },
+    "batt_temp_c": {
+      "cpu_pct": 0.23,
+      "prime_mhz": -0.015,
+      "mem_avail_mb": -0.055,
+      "swap_used_mb": -0.064,
+      "zram_ratio": -0.105,
+      "psi_some10": 0.114,
+      "psi_full10": 0.113,
+      "kswapd_pct": 0.048,
+      "cpu_temp_c": 0.515,
+      "batt_temp_c": 1.0,
+      "batt_pct": -0.169
+    },
+    "batt_pct": {
+      "cpu_pct": -0.147,
+      "prime_mhz": -0.036,
+      "mem_avail_mb": 0.156,
+      "swap_used_mb": -0.028,
+      "zram_ratio": 0.137,
+      "psi_some10": -0.05,
+      "psi_full10": -0.05,
+      "kswapd_pct": -0.038,
+      "cpu_temp_c": -0.139,
+      "batt_temp_c": -0.169,
+      "batt_pct": 1.0
+    }
+  },
+  "thermodynamics": {
+    "delta_temp_ridge_r2": 0.388,
+    "next_temp_ridge_r2": 0.3097,
+    "next_temp_ridge_mae_c": 5.881,
+    "next_temp_persistence_mae_c": 6.594,
+    "ridge_coeffs": {
+      "cpu_temp_c": 0.035064,
+      "temp_minus_batt": -0.780756,
+      "cpu_pct": 0.122376,
+      "prime_mhz": -0.000267,
+      "d_temp_prev": -0.119823,
+      "psi_some10": 0.114258
+    },
+    "ridge_intercept": 5.1915,
+    "heat_onset_75c_count": 416,
+    "heat_onset_precursor_means": {
+      "cpu_pct": 19.36,
+      "prime_mhz": 1282.9,
+      "cpu_temp_c": 47.74,
+      "d_temp_prev": -2.31
+    },
+    "non_onset_baseline_means": {
+      "cpu_pct": 14.62,
+      "prime_mhz": 1184.5,
+      "cpu_temp_c": 44.15,
+      "d_temp_prev": -1.27
+    }
+  },
+  "waste_and_regimes": {
+    "low_cpu_lt12_share": 0.4978,
+    "high_prime_ge2000_share": 0.0901,
+    "waste_low_cpu_high_prime_share": 0.0147,
+    "waste_low_cpu_high_prime_count": 218,
+    "waste_very_low_lt5_prime_ge1800_count": 38,
+    "mean_discharge_pct_per_hr_overall": 11.95,
+    "mean_discharge_pct_per_hr_when_high_prime": 14.17,
+    "mean_discharge_pct_per_hr_when_low_prime": 11.53,
+    "kmeans_unsupervised": {
+      "k=4": {
+        "silhouette": 0.2786,
+        "clusters": [
+          {
+            "cpu_pct": 6.65,
+            "prime_mhz": 1069.16,
+            "mem_avail_mb": 5087.01,
+            "psi_some10": 0.08,
+            "cpu_temp_c": 35.15,
+            "batt_temp_c": 29.83,
+            "kswapd_pct": 0.17,
+            "share": 0.3111,
+            "count": 4615
+          },
+          {
+            "cpu_pct": 15.35,
+            "prime_mhz": 1057.2,
+            "mem_avail_mb": 4114.44,
+            "psi_some10": 0.28,
+            "cpu_temp_c": 46.49,
+            "batt_temp_c": 36.81,
+            "kswapd_pct": 0.4,
+            "share": 0.5596,
+            "count": 8301
+          },
+          {
+            "cpu_pct": 31.32,
+            "prime_mhz": 2403.41,
+            "mem_avail_mb": 4048.86,
+            "psi_some10": 1.51,
+            "cpu_temp_c": 62.51,
+            "batt_temp_c": 35.39,
+            "kswapd_pct": 3.02,
+            "share": 0.11,
+            "count": 1631
+          },
+          {
+            "cpu_pct": 62.61,
+            "prime_mhz": 2144.97,
+            "mem_avail_mb": 3772.9,
+            "psi_some10": 3.24,
+            "cpu_temp_c": 70.06,
+            "batt_temp_c": 36.1,
+            "kswapd_pct": 49.51,
+            "share": 0.0193,
+            "count": 286
+          }
+        ]
+      },
+      "k=5": {
+        "silhouette": 0.3015,
+        "clusters": [
+          {
+            "cpu_pct": 3.76,
+            "prime_mhz": 1032.57,
+            "mem_avail_mb": 11036.24,
+            "psi_some10": 0.03,
+            "cpu_temp_c": 44.3,
+            "batt_temp_c": 40.68,
+            "kswapd_pct": 0.08,
+            "share": 0.0162,
+            "count": 241
+          },
+          {
+            "cpu_pct": 7.18,
+            "prime_mhz": 1089.47,
+            "mem_avail_mb": 4707.29,
+            "psi_some10": 0.09,
+            "cpu_temp_c": 34.24,
+            "batt_temp_c": 28.59,
+            "kswapd_pct": 0.2,
+            "share": 0.2716,
+            "count": 4029
+          },
+          {
+            "cpu_pct": 14.75,
+            "prime_mhz": 1067.17,
+            "mem_avail_mb": 4170.3,
+            "psi_some10": 0.25,
+            "cpu_temp_c": 46.01,
+            "batt_temp_c": 36.75,
+            "kswapd_pct": 0.36,
+            "share": 0.5838,
+            "count": 8660
+          },
+          {
+            "cpu_pct": 31.98,
+            "prime_mhz": 2317.36,
+            "mem_avail_mb": 4023.55,
+            "psi_some10": 1.64,
+            "cpu_temp_c": 63.64,
+            "batt_temp_c": 35.6,
+            "kswapd_pct": 3.29,
+            "share": 0.11,
+            "count": 1632
+          },
+          {
+            "cpu_pct": 63.56,
+            "prime_mhz": 2146.56,
+            "mem_avail_mb": 3755.97,
+            "psi_some10": 3.12,
+            "cpu_temp_c": 69.93,
+            "batt_temp_c": 36.09,
+            "kswapd_pct": 51.1,
+            "share": 0.0183,
+            "count": 271
+          }
+        ]
+      },
+      "k=6": {
+        "silhouette": 0.3225,
+        "clusters": [
+          {
+            "cpu_pct": 3.76,
+            "prime_mhz": 1032.57,
+            "mem_avail_mb": 11036.24,
+            "psi_some10": 0.03,
+            "cpu_temp_c": 44.3,
+            "batt_temp_c": 40.68,
+            "kswapd_pct": 0.08,
+            "share": 0.0162,
+            "count": 241
+          },
+          {
+            "cpu_pct": 7.04,
+            "prime_mhz": 1028.29,
+            "mem_avail_mb": 4740.3,
+            "psi_some10": 0.08,
+            "cpu_temp_c": 33.76,
+            "batt_temp_c": 28.19,
+            "kswapd_pct": 0.18,
+            "share": 0.2413,
+            "count": 3579
+          },
+          {
+            "cpu_pct": 14.18,
+            "prime_mhz": 1038.69,
+            "mem_avail_mb": 4191.89,
+            "psi_some10": 0.19,
+            "cpu_temp_c": 45.44,
+            "batt_temp_c": 36.63,
+            "kswapd_pct": 0.3,
+            "share": 0.5732,
+            "count": 8503
+          },
+          {
+            "cpu_pct": 24.99,
+            "prime_mhz": 2992.55,
+            "mem_avail_mb": 4091.61,
+            "psi_some10": 0.48,
+            "cpu_temp_c": 54.18,
+            "batt_temp_c": 34.08,
+            "kswapd_pct": 2.24,
+            "share": 0.0779,
+            "count": 1155
+          },
+          {
+            "cpu_pct": 31.67,
+            "prime_mhz": 1317.24,
+            "mem_avail_mb": 3973.24,
+            "psi_some10": 2.52,
+            "cpu_temp_c": 65.06,
+            "batt_temp_c": 36.85,
+            "kswapd_pct": 3.22,
+            "share": 0.073,
+            "count": 1083
+          },
+          {
+            "cpu_pct": 63.3,
+            "prime_mhz": 2198.74,
+            "mem_avail_mb": 3759.7,
+            "psi_some10": 3.05,
+            "cpu_temp_c": 70.09,
+            "batt_temp_c": 36.06,
+            "kswapd_pct": 51.11,
+            "share": 0.0183,
+            "count": 272
+          }
+        ]
+      }
+    }
+  },
+  "app_transitions": {
+    "events_total": 20262,
+    "unique_packages": 146,
+    "home_share_of_launches": 0.4036,
+    "raw_markov_transitions": 20253,
+    "raw_markov_oracle_top1_upper_bound": 0.485,
+    "raw_markov_cond_entropy_bits": 2.8566,
+    "no_home_markov_transitions": 3904,
+    "no_home_oracle_top1_upper_bound": 0.437,
+    "no_home_cond_entropy_bits": 2.6959,
+    "top15_non_home_share": 0.7107,
+    "top15_non_home_anon": [
+      {
+        "app": "app_083",
+        "launches": 2165,
+        "share": 0.1792
+      },
+      {
+        "app": "app_067",
+        "launches": 1224,
+        "share": 0.1013
+      },
+      {
+        "app": "app_082",
+        "launches": 1144,
+        "share": 0.0947
+      },
+      {
+        "app": "app_050",
+        "launches": 931,
+        "share": 0.077
+      },
+      {
+        "app": "app_031",
+        "launches": 429,
+        "share": 0.0355
+      },
+      {
+        "app": "app_052",
+        "launches": 385,
+        "share": 0.0319
+      },
+      {
+        "app": "app_075",
+        "launches": 361,
+        "share": 0.0299
+      },
+      {
+        "app": "app_028",
+        "launches": 310,
+        "share": 0.0257
+      },
+      {
+        "app": "app_025",
+        "launches": 290,
+        "share": 0.024
+      },
+      {
+        "app": "app_051",
+        "launches": 287,
+        "share": 0.0238
+      },
+      {
+        "app": "app_041",
+        "launches": 258,
+        "share": 0.0214
+      },
+      {
+        "app": "app_081",
+        "launches": 251,
+        "share": 0.0208
+      },
+      {
+        "app": "app_048",
+        "launches": 231,
+        "share": 0.0191
+      },
+      {
+        "app": "app_071",
+        "launches": 173,
+        "share": 0.0143
+      },
+      {
+        "app": "app_034",
+        "launches": 149,
+        "share": 0.0123
+      }
+    ]
+  },
+  "top20_fg_profiles_anon": {
+    "app_083": {
+      "minutes": 2433,
+      "cpu_mean": 12.35,
+      "cpu_p90": 27.1,
+      "prime_mean": 1201.13,
+      "temp_mean": 42.01,
+      "temp_p95": 65.2,
+      "psi_full_mean": 0.31,
+      "mem_avail_mean": 4555.14
+    },
+    "app_031": {
+      "minutes": 2232,
+      "cpu_mean": 10.11,
+      "cpu_p90": 17.99,
+      "prime_mean": 1138.76,
+      "temp_mean": 39.78,
+      "temp_p95": 49.58,
+      "psi_full_mean": 0.12,
+      "mem_avail_mean": 4356.79
+    },
+    "com.miui.home": {
+      "minutes": 1866,
+      "cpu_mean": 10.63,
+      "cpu_p90": 29.25,
+      "prime_mean": 1309.8,
+      "temp_mean": 43.2,
+      "temp_p95": 67.2,
+      "psi_full_mean": 0.3,
+      "mem_avail_mean": 5376.4
+    },
+    "app_050": {
+      "minutes": 1623,
+      "cpu_mean": 16.12,
+      "cpu_p90": 26.4,
+      "prime_mean": 1223.05,
+      "temp_mean": 45.82,
+      "temp_p95": 64.06,
+      "psi_full_mean": 0.21,
+      "mem_avail_mean": 4208.25
+    },
+    "app_082": {
+      "minutes": 1127,
+      "cpu_mean": 16.51,
+      "cpu_p90": 37.62,
+      "prime_mean": 1331.79,
+      "temp_mean": 47.72,
+      "temp_p95": 76.4,
+      "psi_full_mean": 0.44,
+      "mem_avail_mean": 4255.06
+    },
+    "app_025": {
+      "minutes": 895,
+      "cpu_mean": 22.1,
+      "cpu_p90": 30.2,
+      "prime_mean": 1120.32,
+      "temp_mean": 46.45,
+      "temp_p95": 57.9,
+      "psi_full_mean": 0.18,
+      "mem_avail_mean": 3947.56
+    },
+    "app_075": {
+      "minutes": 848,
+      "cpu_mean": 24.73,
+      "cpu_p90": 34.46,
+      "prime_mean": 1223.83,
+      "temp_mean": 50.05,
+      "temp_p95": 68.16,
+      "psi_full_mean": 0.48,
+      "mem_avail_mean": 3896.21
+    },
+    "app_067": {
+      "minutes": 813,
+      "cpu_mean": 16.61,
+      "cpu_p90": 28.2,
+      "prime_mean": 1214.26,
+      "temp_mean": 48.28,
+      "temp_p95": 65.2,
+      "psi_full_mean": 0.35,
+      "mem_avail_mean": 4274.32
+    },
+    "app_028": {
+      "minutes": 354,
+      "cpu_mean": 17.09,
+      "cpu_p90": 27.68,
+      "prime_mean": 1294.76,
+      "temp_mean": 49.75,
+      "temp_p95": 68.04,
+      "psi_full_mean": 0.28,
+      "mem_avail_mean": 3927.7
+    },
+    "app_051": {
+      "minutes": 202,
+      "cpu_mean": 12.01,
+      "cpu_p90": 30.16,
+      "prime_mean": 1252.73,
+      "temp_mean": 43.85,
+      "temp_p95": 76.0,
+      "psi_full_mean": 0.25,
+      "mem_avail_mean": 4764.04
+    },
+    "app_081": {
+      "minutes": 181,
+      "cpu_mean": 20.31,
+      "cpu_p90": 42.5,
+      "prime_mean": 1462.38,
+      "temp_mean": 51.02,
+      "temp_p95": 78.0,
+      "psi_full_mean": 0.58,
+      "mem_avail_mean": 3924.04
+    },
+    "app_041": {
+      "minutes": 177,
+      "cpu_mean": 19.78,
+      "cpu_p90": 29.28,
+      "prime_mean": 1172.52,
+      "temp_mean": 47.41,
+      "temp_p95": 62.98,
+      "psi_full_mean": 0.28,
+      "mem_avail_mean": 3999.66
+    },
+    "app_086": {
+      "minutes": 170,
+      "cpu_mean": 20.15,
+      "cpu_p90": 31.01,
+      "prime_mean": 1231.48,
+      "temp_mean": 48.96,
+      "temp_p95": 59.3,
+      "psi_full_mean": 0.2,
+      "mem_avail_mean": 4409.36
+    },
+    "app_048": {
+      "minutes": 157,
+      "cpu_mean": 18.72,
+      "cpu_p90": 37.1,
+      "prime_mean": 1185.15,
+      "temp_mean": 51.21,
+      "temp_p95": 84.4,
+      "psi_full_mean": 0.76,
+      "mem_avail_mean": 3958.05
+    },
+    "app_052": {
+      "minutes": 130,
+      "cpu_mean": 16.44,
+      "cpu_p90": 36.02,
+      "prime_mean": 1138.34,
+      "temp_mean": 47.75,
+      "temp_p95": 71.67,
+      "psi_full_mean": 0.53,
+      "mem_avail_mean": 4024.75
+    },
+    "app_034": {
+      "minutes": 120,
+      "cpu_mean": 9.85,
+      "cpu_p90": 29.65,
+      "prime_mean": 1156.23,
+      "temp_mean": 41.54,
+      "temp_p95": 64.57,
+      "psi_full_mean": 0.29,
+      "mem_avail_mean": 4509.11
+    },
+    "app_094": {
+      "minutes": 114,
+      "cpu_mean": 15.43,
+      "cpu_p90": 28.95,
+      "prime_mean": 1447.77,
+      "temp_mean": 45.31,
+      "temp_p95": 75.59,
+      "psi_full_mean": 0.41,
+      "mem_avail_mean": 3965.94
+    },
+    "app_029": {
+      "minutes": 104,
+      "cpu_mean": 18.89,
+      "cpu_p90": 26.81,
+      "prime_mean": 1112.15,
+      "temp_mean": 49.62,
+      "temp_p95": 63.92,
+      "psi_full_mean": 0.34,
+      "mem_avail_mean": 4226.89
+    },
+    "app_091": {
+      "minutes": 91,
+      "cpu_mean": 11.79,
+      "cpu_p90": 26.3,
+      "prime_mean": 1235.05,
+      "temp_mean": 47.42,
+      "temp_p95": 63.3,
+      "psi_full_mean": 0.27,
+      "mem_avail_mean": 3840.88
+    },
+    "app_071": {
+      "minutes": 85,
+      "cpu_mean": 20.42,
+      "cpu_p90": 41.42,
+      "prime_mean": 1468.8,
+      "temp_mean": 51.44,
+      "temp_p95": 87.84,
+      "psi_full_mean": 0.67,
+      "mem_avail_mean": 3752.8
+    }
+  }
+}

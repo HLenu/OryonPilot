@@ -1,0 +1,36 @@
+# Rust
+daemon/target/
+**/*.rs.bk
+
+# Build output (the release zip lives here but is a build artifact)
+dist/stage/
+dist/*.zip
+dist/SHA256SUMS
+
+# Local device audits (may contain serials and package names)
+docs/audit-*.txt
+
+# Editor / OS
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Local scratch
+/tmp/
+*.log
+
+# ML raw telemetry (contains personal app names & device data), venv, caches & binary artifacts
+ml/data/
+ml/.venv/
+ml/cache/
+ml/artifacts/
+ml/colab/oryon_sft_data.json
+
+# Python bytecode
+**/__pycache__/
+*.pyc
+
+# Local agent / tool metadata
+.workbuddy-ai/

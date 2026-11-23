@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="dark" />
+<title>OryonPilot · 小米 15 资源控制台</title>
+<link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <span class="dot" id="conn-dot"></span>
+    <h1>OryonPilot</h1>
+    <span class="ver" id="ver">v0.1.0</span>
+  </div>
+  <div class="hdr-meta">
+    <span class="chip" id="chip-device">device…</span>
+    <span class="chip" id="chip-mode">observe_only</span>
+    <span class="chip state" id="chip-state">BOOT</span>
+    <span class="chip" id="chip-wd">watchdog…</span>
+  </div>
+</header>
+
+<nav class="tabs" id="tabs">
+  <button data-tab="dashboard" class="active">总览</button>
+  <button data-tab="cpu">CPU</button>
+  <button data-tab="memory">内存</button>
+  <button data-tab="predict">预测</button>
+  <button data-tab="policy">策略</button>
+  <button data-tab="safety">安全</button>
+  <button data-tab="logs">日志</button>
+</nav>
+
+<main>
+  <section class="card auth-card">
+    <div class="card-h"><h2>连接本地 Daemon</h2><span class="hint">凭证仅保存在本页内存</span></div>
+    <p class="hint">通过已授权的 Root 终端读取 <code>/data/adb/neurosched/token</code>，在此输入 API 凭证。</p>
+    <form class="row-btns" id="auth-form" autocomplete="off">
+      <label for="auth-token">API 凭证</label>
+      <input id="auth-token" type="password" autocomplete="off" spellcheck="false" maxlength="1024" required />
+      <button class="btn" type="submit">连接</button>
+      <button class="btn ghost" id="auth-clear" type="button">清除凭证</button>
+      <button class="btn ghost" id="diagnostics-export" type="button">导出脱敏诊断</button>
+    </form>
+    <p class="hint" id="auth-message" role="status" aria-live="polite">请输入凭证后连接。</p>
+  </section>
+  <div class="banner"><b>ACTUATOR_ENABLED=false</b><span>当前版本提供只读监控与策略 Dry Run。</span></div>
+  <div class="banner" id="failclosed" hidden>
+    <b>温控 Fail-Closed：写入已自动暂停</b>
+    <span id="failclosed-reason"></span>
+  </div>
+
+  <!-- ============ DASHBOARD ============ -->
+  <section id="tab-dashboard" class="tab active">
+    <div class="card">
+      <div class="card-h"><h2>OryonPilot 运行开销</h2><span class="hint">CPU 以单核 100% 计；上下文切换不等于硬件唤醒</span></div>
+      <div class="kv" id="d-daemon"></div>
+    </div>
+    <div class="grid stats">
+      <div class="card stat">
+        <div class="label">当前状态</div>
+        <div class="value" id="d-state">—</div>
+        <div class="sub" id="d-reason">—</div>
+      </div>
+      <div class="card stat">
+        <div class="label">CPU 总负载</div>
+        <div class="value"><span id="d-cpu">—</span><small>%</small></div>
+        <div class="sub" id="d-cpu-sub">—</div>
+      </div>
+      <div class="card stat">
+        <div class="label">可用内存</div>
+        <div class="value"><span id="d-mem">—</span><small>MB</small></div>
+        <div class="sub" id="d-mem-sub">—</div>
+      </div>
+      <div class="card stat">
+        <div class="label">温度</div>
+        <div class="value"><span id="d-temp">—</span><small>°C</small></div>
+        <div class="sub" id="d-temp-sub">—</div>
+      </div>
+    </div>
+
+    <div class="grid two">
+      <div class="card">
+        <div class="card-h"><h2>集群频率与负载</h2><span class="hint" id="d-cluster-hint"></span></div>
+        <div id="d-clusters" class="cluster-list"></div>
+      </div>
+      <div class="card">
+        <div class="card-h"><h2>压力与回收</h2><span class="hint">PSI · kswapd · swap</span></div>
+        <div class="bars" id="d-pressure"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-h"><h2>历史趋势</h2><span class="hint" id="d-hist-hint">最近 120 点</span></div>
+      <canvas id="chart-history" height="180"></canvas>
+      <div class="legend">
+        <span><i class="sw cpu"></i>CPU %</span>
+        <span><i class="sw mem"></i>可用内存 MB</span>
+        <span><i class="sw psi"></i>PSI some10</span>
+        <span><i class="sw temp"></i>CPU 温度 °C</span>
+      </div>
+    </div>
+
+    <div class="grid two">
+      <div class="card">
+        <div class="card-h"><h2>电池</h2></div>
+        <div class="kv" id="d-battery"></div>
+      </div>
+      <div class="card">
+        <div class="card-h"><h2>采集器健康</h2></div>
+        <div class="kv" id="d-health"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CPU ============ -->
+  <section id="tab-cpu" class="tab">
+    <div class="card">
+      <div class="card-h"><h2>核心拓扑</h2><span class="hint" id="cpu-topo-hint"></span></div>
+      <div class="table-wrap"><table id="cpu-clusters"></table></div>
+    </div>
+    <div class="card">
+      <div class="card-h"><h2>每核心</h2><span class="hint">负载 / 当前频率</span></div>
+      <div class="cores" id="cpu-cores"></div>
+    </div>
+    <div class="grid two">
+      <div class="card">
+        <div class="card-h"><h2>调度器能力</h2></div>
+        <div class="kv" id="cpu-sched"></div>
+      </div>
+      <div class="card">
+        <div class="card-h"><h2>发现的节点</h2><span class="hint">只读探测，未写入</span></div>
+        <div class="kv mono" id="cpu-knobs"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ MEMORY ============ -->
+  <section id="tab-memory" class="tab">
+    <div class="grid stats">
+      <div class="card stat"><div class="label">MemAvailable</div><div class="value"><span id="m-avail">—</span><small>MB</small></div><div class="sub" id="m-avail-pct">—</div></div>
+      <div class="card stat"><div class="label">Swap 已用</div><div class="value"><span id="m-swap">—</span><small>MB</small></div><div class="sub" id="m-swap-sub">—</div></div>
+      <div class="card stat"><div class="label">zRAM 压缩比</div><div class="value"><span id="m-ratio">—</span><small>×</small></div><div class="sub" id="m-ratio-sub">—</div></div>
+      <div class="card stat"><div class="label">kswapd0</div><div class="value"><span id="m-kswapd">—</span><small>%</small></div><div class="sub" id="m-kswapd-sub">—</div></div>
+    </div>
+    <div class="grid two">
+      <div class="card"><div class="card-h"><h2>内存明细</h2></div><div class="kv" id="m-detail"></div></div>
+      <div class="card"><div class="card-h"><h2>PSI</h2><span class="hint">some / full，avg10</span></div><div class="bars" id="m-psi"></div></div>
+    </div>
+    <div class="grid two">
+      <div class="card"><div class="card-h"><h2>zRAM</h2></div><div class="table-wrap"><table id="m-zram"></table></div></div>
+      <div class="card"><div class="card-h"><h2>MMD（系统内存守护）</h2><span class="hint">只监控，不接管</span></div><div class="kv" id="m-mmd"></div></div>
+    </div>
+  </section>
+
+  <!-- ============ PREDICTOR ============ -->
+  <section id="tab-predict" class="tab">
+    <div class="grid two">
+      <div class="card">
+        <div class="card-h"><h2>下一次前台应用</h2><span class="hint" id="p-refused"></span></div>
+        <div class="pred" id="p-main">
+          <div class="pred-pkg" id="p-pkg">—</div>
+          <div class="pred-meta">
+            <div><span class="label">概率</span><b id="p-prob">—</b></div>
+            <div><span class="label">置信度</span><b id="p-conf">—</b></div>
+            <div><span class="label">样本</span><b id="p-samples">—</b></div>
+            <div><span class="label">准确率</span><b id="p-acc">—</b></div>
+          </div>
+          <div class="hint" id="p-reason">—</div>
+          <div class="hint" id="p-feedback">—</div>
+          <div class="hint" id="p-baseline">—</div>
+          <div class="hint" id="p-preview">—</div>
+        </div>
+        <div class="cand" id="p-candidates"></div>
+        <div class="row-btns">
+          <button class="btn" id="p-now">立即预测</button>
+          <button class="btn ghost" id="p-reset">重置模型</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-h"><h2>使用排行</h2><span class="hint">前台次数</span></div>
+        <div class="table-wrap"><table id="p-usage"></table></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-h"><h2>AI 调度与自进化 (Shadow Learner)</h2><span class="hint" id="l-source">—</span></div>
+      <div class="pred-meta">
+        <div><span class="label">+1m CPU 预测</span><b id="l-cpu">—</b></div>
+        <div><span class="label">Burst 概率</span><b id="l-burst">—</b></div>
+        <div><span class="label">+1m / +3m 温度</span><b id="l-temp">—</b></div>
+        <div><span class="label">3m 过热风险</span><b id="l-oh">—</b></div>
+      </div>
+      <div class="grid two" style="margin-top:12px">
+        <div class="kv" id="l-action"></div>
+        <div class="kv" id="l-shadow"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-h"><h2>说明</h2></div>
+      <p class="note">预测只用于提前准备调度档位，<b>不会启动任何应用</b>。样本不足或置信度低于阈值时会明确拒绝预测。
+      应用事件优先来自 <code>logcat -b events</code>；不可用时回退到 <code>/proc</code> 的 top-app 扫描，并把置信度上限压到 50%。</p>
+    </div>
+  </section>
+
+  <!-- ============ POLICY ============ -->
+  <section id="tab-policy" class="tab">
+    <div class="grid two">
+      <div class="card">
+        <div class="card-h"><h2>当前决策</h2><span class="hint" id="pol-dwell"></span></div>
+        <div class="kv" id="pol-current"></div>
+        <div class="hint" id="pol-blocked"></div>
+      </div>
+      <div class="card">
+        <div class="card-h"><h2>状态优先级</h2><span class="hint">数值越大越优先</span></div>
+        <div class="prio" id="pol-prio"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-h"><h2>本次可用状态</h2><span class="hint">同时满足条件时按优先级裁决</span></div>
+      <div class="table-wrap"><table id="pol-eligible"></table></div>
+    </div>
+    <div class="card">
+      <div class="card-h"><h2>状态迁移</h2></div>
+      <div class="table-wrap"><table id="pol-trans"></table></div>
+    </div>
+    <div class="card">
+      <div class="card-h"><h2>阈值配置</h2><span class="hint">保存后立即生效，写入仍受模式限制</span></div>
+      <form id="pol-form" class="form-grid"></form>
+      <div class="row-btns">
+        <button class="btn" id="pol-save">保存</button>
+        <button class="btn ghost" id="pol-reload">重新载入</button>
+        <span class="hint" id="pol-save-msg"></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SAFETY ============ -->
+  <section id="tab-safety" class="tab">
+    <div class="grid two">
+      <div class="card">
+        <div class="card-h"><h2>运行模式</h2><span class="hint" id="s-writes"></span></div>
+        <div class="seg" id="s-mode">
+          <button data-mode="observe_only">observe_only</button>
+          <button data-mode="dry_run">dry_run</button>
+        </div>
+        <div class="kv" id="s-state"></div>
+        <div class="row-btns">
+          <button class="btn danger" id="s-rollback">立即回滚全部节点</button>
+          <button class="btn ghost" id="s-reload">重载配置</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-h"><h2>Uclamp 能力</h2><span class="hint">只读探测结果</span></div>
+        <div class="kv mono" id="s-cap"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-h"><h2>节点所有权</h2><span class="hint">原始值 / 最后写入 / 冲突</span></div>
+      <div class="table-wrap"><table id="s-nodes"></table></div>
+    </div>
+    <div class="card">
+      <div class="card-h"><h2>写入事务日志</h2><span class="hint">最近 50 条</span></div>
+      <div class="table-wrap"><table id="s-journal"></table></div>
+    </div>
+  </section>
+
+  <!-- ============ LOGS ============ -->
+  <section id="tab-logs" class="tab">
+    <div class="card">
+      <div class="card-h">
+        <h2>事件日志</h2>
+        <div class="filters">
+          <select id="log-level">
+            <option value="debug">debug</option>
+            <option value="info" selected>info</option>
+            <option value="warn">warn</option>
+            <option value="error">error</option>
+          </select>
+          <input id="log-filter" placeholder="过滤关键字" />
+          <button class="btn ghost" id="log-refresh">刷新</button>
+          <a class="btn ghost" id="log-export" href="#" download>导出 CSV</a>
+        </div>
+      </div>
+      <div class="table-wrap"><table id="log-table"></table></div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <span>本地运行 · 不向任何服务器上传数据</span>
+  <span id="foot-ts"></span>
+</footer>
+
+<script src="/app.js"></script>
+</body>
+</html>

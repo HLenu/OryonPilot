@@ -1,0 +1,306 @@
+{
+  "blind_test_simulation": {
+    "OldStatic_50C": {
+      "n_steps": 1780,
+      "mean_reward": -0.0423,
+      "total_reward": -75.28,
+      "mean_perf_score": 0.1929,
+      "mean_thermal_pen": 0.1545,
+      "mean_waste_pen": 0.0439,
+      "overheat_ge75_pct": 2.81,
+      "mean_temp_c": 47.85,
+      "p95_temp_c": 68.33,
+      "switch_rate_pct": 45.96,
+      "quartile_mean_rewards": [
+        -0.1222,
+        -0.1268,
+        0.0508,
+        0.0291
+      ],
+      "action_share": {
+        "DEEP_SAVE": 0.0213,
+        "EFFICIENCY": 0.2112,
+        "RESPONSIVE": 0.3607,
+        "BOOST": 0.0798,
+        "THERMAL_CAP": 0.327
+      }
+    },
+    "StaticRules_v012": {
+      "n_steps": 1780,
+      "mean_reward": 0.0466,
+      "total_reward": 83.03,
+      "mean_perf_score": 0.2979,
+      "mean_thermal_pen": 0.1547,
+      "mean_waste_pen": 0.0579,
+      "overheat_ge75_pct": 2.81,
+      "mean_temp_c": 47.86,
+      "p95_temp_c": 68.34,
+      "switch_rate_pct": 48.31,
+      "quartile_mean_rewards": [
+        -0.0571,
+        0.0002,
+        0.1117,
+        0.1318
+      ],
+      "action_share": {
+        "DEEP_SAVE": 0.0213,
+        "EFFICIENCY": 0.2169,
+        "RESPONSIVE": 0.5039,
+        "BOOST": 0.1989,
+        "THERMAL_CAP": 0.059
+      }
+    },
+    "LightGBM_Policy": {
+      "n_steps": 1780,
+      "mean_reward": 0.0184,
+      "total_reward": 32.72,
+      "mean_perf_score": 0.2554,
+      "mean_thermal_pen": 0.1547,
+      "mean_waste_pen": 0.0512,
+      "overheat_ge75_pct": 2.81,
+      "mean_temp_c": 47.86,
+      "p95_temp_c": 68.33,
+      "switch_rate_pct": 38.93,
+      "quartile_mean_rewards": [
+        -0.063,
+        -0.034,
+        0.101,
+        0.0696
+      ],
+      "action_share": {
+        "DEEP_SAVE": 0.0163,
+        "EFFICIENCY": 0.1899,
+        "RESPONSIVE": 0.5,
+        "BOOST": 0.1208,
+        "THERMAL_CAP": 0.173
+      }
+    },
+    "TinyMLP_Policy": {
+      "n_steps": 1780,
+      "mean_reward": -0.0058,
+      "total_reward": -10.36,
+      "mean_perf_score": 0.2228,
+      "mean_thermal_pen": 0.1546,
+      "mean_waste_pen": 0.0432,
+      "overheat_ge75_pct": 2.81,
+      "mean_temp_c": 47.85,
+      "p95_temp_c": 68.33,
+      "switch_rate_pct": 38.6,
+      "quartile_mean_rewards": [
+        -0.1091,
+        -0.0732,
+        0.0809,
+        0.0781
+      ],
+      "action_share": {
+        "DEEP_SAVE": 0.0146,
+        "EFFICIENCY": 0.1646,
+        "RESPONSIVE": 0.3242,
+        "BOOST": 0.1629,
+        "THERMAL_CAP": 0.3337
+      }
+    },
+    "CompactGBDT_Policy": {
+      "n_steps": 1780,
+      "mean_reward": 0.0599,
+      "total_reward": 106.67,
+      "mean_perf_score": 0.2853,
+      "mean_thermal_pen": 0.1547,
+      "mean_waste_pen": 0.051,
+      "overheat_ge75_pct": 2.81,
+      "mean_temp_c": 47.86,
+      "p95_temp_c": 68.34,
+      "switch_rate_pct": 24.66,
+      "quartile_mean_rewards": [
+        -0.0422,
+        0.0145,
+        0.1297,
+        0.1377
+      ],
+      "action_share": {
+        "DEEP_SAVE": 0.0219,
+        "EFFICIENCY": 0.1961,
+        "RESPONSIVE": 0.7242,
+        "BOOST": 0.0,
+        "THERMAL_CAP": 0.0579
+      }
+    },
+    "OfflineRL_FQI": {
+      "n_steps": 1780,
+      "mean_reward": 0.0873,
+      "total_reward": 155.31,
+      "mean_perf_score": 0.3325,
+      "mean_thermal_pen": 0.1548,
+      "mean_waste_pen": 0.066,
+      "overheat_ge75_pct": 2.81,
+      "mean_temp_c": 47.87,
+      "p95_temp_c": 68.34,
+      "switch_rate_pct": 30.56,
+      "quartile_mean_rewards": [
+        -0.0119,
+        0.0672,
+        0.1361,
+        0.1576
+      ],
+      "action_share": {
+        "DEEP_SAVE": 0.0124,
+        "EFFICIENCY": 0.1669,
+        "RESPONSIVE": 0.5028,
+        "BOOST": 0.2944,
+        "THERMAL_CAP": 0.0236
+      }
+    },
+    "WarmStart_FQI_Residual_LinUCB": {
+      "n_steps": 1780,
+      "mean_reward": 0.0558,
+      "total_reward": 99.38,
+      "mean_perf_score": 0.2971,
+      "mean_thermal_pen": 0.1547,
+      "mean_waste_pen": 0.0735,
+      "overheat_ge75_pct": 2.81,
+      "mean_temp_c": 47.86,
+      "p95_temp_c": 68.34,
+      "switch_rate_pct": 16.29,
+      "quartile_mean_rewards": [
+        -0.0419,
+        0.0087,
+        0.1346,
+        0.1219
+      ],
+      "action_share": {
+        "DEEP_SAVE": 0.0371,
+        "EFFICIENCY": 0.0202,
+        "RESPONSIVE": 0.8646,
+        "BOOST": 0.0219,
+        "THERMAL_CAP": 0.0562
+      }
+    }
+  },
+  "full_17d_continuous_learning": {
+    "StaticRules_v012": {
+      "n_steps": 11863,
+      "mean_reward": 0.0192,
+      "total_reward": 227.46,
+      "mean_perf_score": 0.2788,
+      "mean_thermal_pen": 0.1675,
+      "mean_waste_pen": 0.0574,
+      "overheat_ge75_pct": 3.1,
+      "mean_temp_c": 45.87,
+      "p95_temp_c": 67.2,
+      "switch_rate_pct": 43.43,
+      "quartile_mean_rewards": [
+        0.0453,
+        -0.0213,
+        0.0323,
+        0.0204
+      ],
+      "action_share": {
+        "DEEP_SAVE": 0.0754,
+        "EFFICIENCY": 0.2225,
+        "RESPONSIVE": 0.478,
+        "BOOST": 0.1793,
+        "THERMAL_CAP": 0.0449
+      }
+    },
+    "LinUCB_ColdStart": {
+      "n_steps": 11863,
+      "mean_reward": 0.0091,
+      "total_reward": 107.71,
+      "mean_perf_score": 0.2622,
+      "mean_thermal_pen": 0.1675,
+      "mean_waste_pen": 0.0623,
+      "overheat_ge75_pct": 3.1,
+      "mean_temp_c": 45.87,
+      "p95_temp_c": 67.21,
+      "switch_rate_pct": 29.16,
+      "quartile_mean_rewards": [
+        0.0303,
+        -0.0286,
+        0.0258,
+        0.0089
+      ],
+      "action_share": {
+        "DEEP_SAVE": 0.1419,
+        "EFFICIENCY": 0.0918,
+        "RESPONSIVE": 0.536,
+        "BOOST": 0.1322,
+        "THERMAL_CAP": 0.0981
+      }
+    },
+    "WarmStart_TinyMLP_LinUCB": {
+      "n_steps": 11863,
+      "mean_reward": 0.0358,
+      "total_reward": 424.16,
+      "mean_perf_score": 0.2923,
+      "mean_thermal_pen": 0.1676,
+      "mean_waste_pen": 0.0648,
+      "overheat_ge75_pct": 3.1,
+      "mean_temp_c": 45.88,
+      "p95_temp_c": 67.2,
+      "switch_rate_pct": 30.24,
+      "quartile_mean_rewards": [
+        0.0629,
+        -0.0169,
+        0.0591,
+        0.0379
+      ],
+      "action_share": {
+        "DEEP_SAVE": 0.0886,
+        "EFFICIENCY": 0.2029,
+        "RESPONSIVE": 0.2622,
+        "BOOST": 0.3884,
+        "THERMAL_CAP": 0.0579
+      }
+    },
+    "WarmStart_FQI_Residual_LinUCB": {
+      "n_steps": 11863,
+      "mean_reward": 0.0342,
+      "total_reward": 405.73,
+      "mean_perf_score": 0.2863,
+      "mean_thermal_pen": 0.1675,
+      "mean_waste_pen": 0.0626,
+      "overheat_ge75_pct": 3.1,
+      "mean_temp_c": 45.87,
+      "p95_temp_c": 67.2,
+      "switch_rate_pct": 27.39,
+      "quartile_mean_rewards": [
+        0.0412,
+        -0.0072,
+        0.0577,
+        0.0451
+      ],
+      "action_share": {
+        "DEEP_SAVE": 0.1629,
+        "EFFICIENCY": 0.0628,
+        "RESPONSIVE": 0.5179,
+        "BOOST": 0.201,
+        "THERMAL_CAP": 0.0554
+      }
+    },
+    "OfflineRL_FQI": {
+      "n_steps": 11863,
+      "mean_reward": 0.0597,
+      "total_reward": 707.97,
+      "mean_perf_score": 0.312,
+      "mean_thermal_pen": 0.1676,
+      "mean_waste_pen": 0.0638,
+      "overheat_ge75_pct": 3.1,
+      "mean_temp_c": 45.88,
+      "p95_temp_c": 67.21,
+      "switch_rate_pct": 26.11,
+      "quartile_mean_rewards": [
+        0.0802,
+        0.0182,
+        0.0789,
+        0.0614
+      ],
+      "action_share": {
+        "DEEP_SAVE": 0.0864,
+        "EFFICIENCY": 0.1447,
+        "RESPONSIVE": 0.4675,
+        "BOOST": 0.2693,
+        "THERMAL_CAP": 0.032
+      }
+    }
+  }
+}

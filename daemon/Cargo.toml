@@ -1,0 +1,47 @@
+[package]
+name = "neurosched"
+version = "0.2.0-observe.1"
+edition = "2021"
+rust-version = "1.80"
+license = "GPL-3.0-or-later"
+description = "NeuroSched - telemetry driven, safety first CPU/memory policy daemon for Xiaomi 15 (Snapdragon 8 Elite / HyperOS)"
+repository = "https://example.invalid/neurosched"
+publish = false
+
+[lib]
+name = "neurosched"
+path = "src/lib.rs"
+
+[[bin]]
+name = "neuroschedd"
+path = "src/main.rs"
+
+[dependencies]
+# Mature, permissively licensed crates replace the hand-rolled equivalents where a
+# bug would be a security or correctness problem. See docs/CODE_AUDIT.md.
+serde_json = { version = "1", default-features = false, features = ["std"] }
+tiny_http = "0.12"
+getrandom = "0.3"
+
+# Version anchor, not a direct API dependency. libc 0.2.191's build script spawns
+# `rustc --version`, which is denied in this Windows build sandbox for cross targets
+# (os error 5). 0.2.155 has no such probe and satisfies getrandom/signal-hook.
+libc = "=0.2.155"
+
+[target.'cfg(unix)'.dependencies]
+signal-hook = "0.3"
+
+[patch.crates-io]
+# Narrow transport limits on the existing HTTP parser; see vendor/tiny_http/PATCHES.md.
+tiny_http = { path = "vendor/tiny_http" }
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
+overflow-checks = false
+
+[profile.dev]
+panic = "unwind"

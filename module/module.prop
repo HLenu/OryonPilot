@@ -1,0 +1,6 @@
+id=neurosched
+name=OryonPilot
+version=v0.2.0-observe.1
+versionCode=200
+author=NeuroSched
+description=骁龙 8 Elite 智能资源调度：只读遥测、状态机策略、可回滚的 uclamp 执行器。默认 observe_only，安装后不修改任何内核参数。
