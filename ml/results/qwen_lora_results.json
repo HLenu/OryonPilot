@@ -1,0 +1,110 @@
+{
+  "model_id": "Qwen/Qwen2.5-0.5B-Instruct",
+  "gpu": "Tesla T4",
+  "dtype": "torch.float16",
+  "total_params": 502830976,
+  "trainable_lora_params": 8798208,
+  "adapter_disk_kb": 45575.0,
+  "train_samples": 4000,
+  "epochs": 3,
+  "train_losses": [
+    0.3792,
+    0.3385,
+    0.297
+  ],
+  "train_sec": 1671.19,
+  "peak_vram_mb": 6386.7,
+  "zero_shot_250": {
+    "n_eval": 250,
+    "json_valid_rate": 0.0,
+    "total_eval_sec": 10.88,
+    "ms_per_sample_gpu_batch": 43.51,
+    "cpu_next": {
+      "mae": 11.4904,
+      "rmse": 16.7696
+    },
+    "burst": {
+      "f1": 0.0,
+      "acc": 0.764
+    },
+    "t1": {
+      "mae": 7.7788,
+      "rmse": 11.578
+    },
+    "t3": {
+      "mae": 7.5476,
+      "rmse": 11.0994
+    },
+    "overheat_3m": {
+      "f1": 0.0,
+      "acc": 0.912
+    },
+    "action": {
+      "acc": 0.188,
+      "macro_f1": 0.0633,
+      "weighted_f1": 0.0595
+    }
+  },
+  "lora_finetuned_250": {
+    "n_eval": 250,
+    "json_valid_rate": 1.0,
+    "total_eval_sec": 18.25,
+    "ms_per_sample_gpu_batch": 73.0,
+    "cpu_next": {
+      "mae": 9.4608,
+      "rmse": 16.1254
+    },
+    "burst": {
+      "f1": 0.4088,
+      "acc": 0.676
+    },
+    "t1": {
+      "mae": 5.8812,
+      "rmse": 10.5441
+    },
+    "t3": {
+      "mae": 5.7844,
+      "rmse": 10.4451
+    },
+    "overheat_3m": {
+      "f1": 0.0,
+      "acc": 0.912
+    },
+    "action": {
+      "acc": 0.552,
+      "macro_f1": 0.4997,
+      "weighted_f1": 0.5577
+    }
+  },
+  "lora_finetuned_full_test": {
+    "n_eval": 1780,
+    "json_valid_rate": 1.0,
+    "total_eval_sec": 123.68,
+    "ms_per_sample_gpu_batch": 69.48,
+    "cpu_next": {
+      "mae": 9.8939,
+      "rmse": 15.8857
+    },
+    "burst": {
+      "f1": 0.3976,
+      "acc": 0.6579
+    },
+    "t1": {
+      "mae": 6.1204,
+      "rmse": 10.7491
+    },
+    "t3": {
+      "mae": 6.4603,
+      "rmse": 10.9582
+    },
+    "overheat_3m": {
+      "f1": 0.0,
+      "acc": 0.9208
+    },
+    "action": {
+      "acc": 0.5236,
+      "macro_f1": 0.4705,
+      "weighted_f1": 0.527
+    }
+  }
+}
