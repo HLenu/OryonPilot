@@ -7,6 +7,8 @@
 use crate::json::{self, Json};
 use std::io::Write;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 
 /// Recovery eligibility is established before any caller is given node entries.
 /// A journal from another kernel boot must never be replayed into this boot.
@@ -116,6 +118,7 @@ pub struct Journal {
     session: String,
     enabled: bool,
     boot_id: Option<String>,
+    dirty: Arc<AtomicBool>,
 }
 
 impl Journal {
@@ -127,6 +130,7 @@ impl Journal {
             session,
             enabled: true,
             boot_id: None,
+            dirty: Arc::new(AtomicBool::new(false)),
         }
     }
 
@@ -155,6 +159,7 @@ impl Journal {
             session,
             enabled: true,
             boot_id: Some(boot_id),
+            dirty: Arc::new(AtomicBool::new(false)),
         })
     }
 
@@ -165,7 +170,12 @@ impl Journal {
             session: "disabled".into(),
             enabled: false,
             boot_id: None,
+            dirty: Arc::new(AtomicBool::new(false)),
         }
+    }
+
+    pub fn take_dirty(&self) -> bool {
+        self.dirty.swap(false, Ordering::AcqRel)
     }
 
     pub fn session(&self) -> &str {
@@ -253,6 +263,7 @@ impl Journal {
         // fsync on every entry: a crash between write and readback must not lose the
         // record of what we changed.
         f.sync_all()?;
+        self.dirty.store(true, Ordering::Release);
         Ok(())
     }
 

@@ -132,7 +132,6 @@ pub struct Actuator {
     ownership: Ownership,
     journal: Journal,
     on_conflict: ConflictAction,
-    last_report: ApplyReport,
     recovery_required: bool,
 }
 
@@ -156,7 +155,6 @@ impl Actuator {
             ownership: Ownership::default(),
             journal,
             on_conflict,
-            last_report: ApplyReport::default(),
             recovery_required: false,
             root,
         };
@@ -218,10 +216,6 @@ impl Actuator {
 
     pub fn nodes(&self) -> Vec<NodeView> {
         self.ownership.dump()
-    }
-
-    pub fn last_report(&self) -> &ApplyReport {
-        &self.last_report
     }
 
     pub fn capability_json(&self) -> crate::json::Json {
@@ -552,7 +546,6 @@ impl Actuator {
             }
         }
 
-        self.last_report = report.clone();
         report
     }
 

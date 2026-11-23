@@ -175,12 +175,10 @@ pub struct Data {
     pub recovered: Vec<String>,
     pub capability: Json,
     pub usage: Vec<(String, u32)>,
-    pub eligible: Vec<(PolicyState, String)>,
     pub mode: RunMode,
     pub reload_requested: bool,
     pub action: Option<Action>,
     pub transitions: Vec<(u64, String, String, String)>,
-    pub tick_errors: u64,
     /// (restored, skipped, conflicts) from the most recent restore pass.
     pub last_restore: (usize, usize, usize),
     /// True when the CPU temperature sensor cannot be trusted; writes are suspended.
@@ -212,12 +210,10 @@ impl Default for Data {
             recovered: Vec::new(),
             capability: Json::Null,
             usage: Vec::new(),
-            eligible: Vec::new(),
             mode: RunMode::ObserveOnly,
             reload_requested: false,
             action: None,
             transitions: Vec::new(),
-            tick_errors: 0,
             last_restore: (0, 0, 0),
             thermal_fail_closed: false,
             fail_closed_reason: String::new(),
@@ -259,6 +255,7 @@ pub struct Runtime {
     daemon_collector: crate::collector::daemon::DaemonCollector,
     last_daemon_sample_ms: Option<u64>,
     root: SysRoot,
+    config: Config,
     shared: Arc<Shared>,
     collectors: Collectors,
     learner: crate::learner::Learner,
@@ -271,6 +268,7 @@ pub struct Runtime {
     last_history_ms: u64,
     last_model_save_ms: u64,
     thermal_fail_closed: bool,
+    last_screen_off: bool,
     stop: Arc<AtomicBool>,
     _lock: crate::safety::lock::RuntimeLock,
 }
@@ -418,6 +416,8 @@ impl Runtime {
         );
 
         let learner = crate::learner::Learner::load(&paths.sched_model(), &paths.learner_state());
+        let capability = actuator.capability_json();
+        let uclamp_present = capability.get("uclamp").is_some();
 
         let data = Data {
             config: cfg.clone(),
@@ -426,12 +426,13 @@ impl Runtime {
             mode,
             safe_mode,
             safe_reason,
-            recovered,
-            capability: actuator.capability_json(),
+            recovered: recovered.clone(),
+            capability,
             nodes: actuator.nodes(),
             journal: journal.recent(50),
             ..Default::default()
         };
+        let _ = journal.take_dirty();
 
         let shared = Arc::new(Shared {
             token,
@@ -453,10 +454,10 @@ impl Runtime {
                 crate::VERSION,
                 mode.as_str(),
                 safe_mode,
-                actuator.capability_json().get("uclamp").is_some()
+                uclamp_present
             ),
         );
-        for r in shared.with(|d| d.recovered.clone()) {
+        for r in recovered {
             logger.warn("recovery", r);
         }
 
@@ -464,6 +465,7 @@ impl Runtime {
             daemon_collector: crate::collector::daemon::DaemonCollector::new(),
             last_daemon_sample_ms: None,
             root,
+            config: cfg,
             shared,
             collectors,
             learner,
@@ -476,6 +478,7 @@ impl Runtime {
             last_history_ms: 0,
             last_model_save_ms: boot_ms,
             thermal_fail_closed: false,
+            last_screen_off: false,
             stop: Arc::new(AtomicBool::new(false)),
             _lock: runtime_lock,
         })
@@ -506,14 +509,14 @@ impl Runtime {
 
         let mut snap = self.collectors.sample(&self.root, now);
         snap.wall_ts_ms = wall_ms;
+        self.last_screen_off = snap.apps.screen == ScreenState::Off;
         let _ = self.collectors.drain_app_events();
 
-        let launchers = self.shared.with(|d| d.config.apps.launchers.clone());
         let is_launcher = snap
             .apps
             .foreground
             .as_deref()
-            .is_some_and(|fg| fg == "-" || launchers.iter().any(|l| l == fg));
+            .is_some_and(|fg| fg == "-" || self.config.apps.launchers.iter().any(|l| l == fg));
         let learner_snap = self.learner.on_tick(now, wall_ms, &snap, is_launcher);
 
         let decision = self.engine.evaluate(&snap, now);
@@ -541,10 +544,9 @@ impl Runtime {
             }
             self.thermal_fail_closed = fail_closed;
         }
-        let cfg = self.shared.with(|d| d.config.clone());
-        let configured_mode = cfg.mode;
+        let configured_mode = self.config.mode;
         let effective_mode = effective_mode(
-            &cfg,
+            &self.config,
             &self.root,
             self.thermal_fail_closed || self.engine.safe_mode(),
         );
@@ -557,12 +559,12 @@ impl Runtime {
         // Every sample revalidates ownership and the full target. Unchanged values
         // incur reads only, including when thermal ceilings change within a state.
         let report = self.actuator.apply(&decision, wall_ms);
+        let mut new_safe_reason: Option<String> = None;
         if self.actuator.recovery_required() {
-            self.engine
-                .set_safe_mode(true, "actuator recovery requires inspection");
+            let reason = "actuator recovery requires inspection".to_string();
+            self.engine.set_safe_mode(true, reason.clone());
             self.actuator.set_mode(RunMode::ObserveOnly);
-            self.shared
-                .mutate(|d| d.safe_reason = "actuator recovery requires inspection".into());
+            new_safe_reason = Some(reason);
         }
 
         let telemetry_healthy = snap
@@ -580,24 +582,20 @@ impl Runtime {
             WatchdogStatus::SafeMode(n) => format!("safe mode ({n} boots left)"),
         };
         if matches!(wd_status, WatchdogStatus::SafeMode(_)) && !self.engine.safe_mode() {
-            self.engine
-                .set_safe_mode(true, self.watchdog.safe_mode_reason());
-            self.shared
-                .mutate(|d| d.safe_reason = self.watchdog.safe_mode_reason());
+            let reason = self.watchdog.safe_mode_reason();
+            self.engine.set_safe_mode(true, reason.clone());
+            new_safe_reason = Some(reason);
         }
 
-        let hist_cfg = self.shared.with(|d| d.config.sample.history_interval_ms);
-        if now.saturating_sub(self.last_history_ms) >= hist_cfg {
-            let point = HistoryPoint::from_snapshot(&snap, decision.state.as_str());
-            self.telemetry.append(&point);
-            self.last_history_ms = now;
-            self.shared.mutate(|d| {
-                d.history.push_back(point);
-                while d.history.len() > 720 {
-                    d.history.pop_front();
-                }
-            });
-        }
+        let new_history_point =
+            if now.saturating_sub(self.last_history_ms) >= self.config.sample.history_interval_ms {
+                let point = HistoryPoint::from_snapshot(&snap, decision.state.as_str());
+                self.telemetry.append(&point);
+                self.last_history_ms = now;
+                Some(point)
+            } else {
+                None
+            };
 
         if self.learner.is_dirty()
             && now.saturating_sub(self.last_model_save_ms) >= LEARNER_PERSIST_INTERVAL_MS
@@ -625,7 +623,11 @@ impl Runtime {
 
         let usage = self.learner.usage_ranking(12);
         let nodes = self.actuator.nodes();
-        let journal_recent = self.journal.recent(50);
+        let journal_recent = if self.journal.take_dirty() {
+            Some(self.journal.recent(50))
+        } else {
+            None
+        };
         let capability = self.actuator.capability_json();
         let mode = self.actuator.mode();
         let daemon_sample = if self
@@ -644,6 +646,18 @@ impl Runtime {
             if let Some(sample) = daemon_sample {
                 d.daemon = sample;
             }
+            if let Some(reason) = new_safe_reason {
+                d.safe_reason = reason;
+            }
+            if let Some(point) = new_history_point {
+                d.history.push_back(point);
+                while d.history.len() > 720 {
+                    d.history.pop_front();
+                }
+            }
+            if let Some(j) = journal_recent {
+                d.journal = j;
+            }
             d.completed_ticks = d.completed_ticks.saturating_add(1);
             d.last_tick_ms = tick_ms;
             d.max_tick_ms = d.max_tick_ms.max(tick_ms);
@@ -654,10 +668,8 @@ impl Runtime {
             d.watchdog = wd_text;
             d.safe_mode = self.engine.safe_mode();
             d.nodes = nodes;
-            d.journal = journal_recent;
             d.capability = capability;
             d.usage = usage;
-            d.eligible = d.decision.eligible.clone();
             d.transitions = transitions;
             d.mode = mode;
             d.configured_mode = configured_mode;
@@ -696,12 +708,13 @@ impl Runtime {
             Some(Action::Rollback) => {
                 self.restore_owned("manual rollback");
                 self.actuator.set_mode(RunMode::ObserveOnly);
+                self.config.mode = RunMode::ObserveOnly;
+                self.config.actuator.enabled = false;
                 self.shared.mutate(|d| {
                     d.config.mode = RunMode::ObserveOnly;
                     d.config.actuator.enabled = false;
                 });
-                let cfg = self.shared.with(|d| d.config.clone());
-                if let Err(err) = cfg.save(&self.paths.config()) {
+                if let Err(err) = self.config.save(&self.paths.config()) {
                     self.shared.logger.warn(
                         "config",
                         format!("rollback stays read-only in memory, persistence failed: {err}"),
@@ -737,6 +750,7 @@ impl Runtime {
             .update_config(&cfg.actuator, cfg.safety.on_conflict);
         self.shared.logger.set_keep_files(cfg.log.keep_files);
         self.collectors.update_config(&cfg);
+        self.config = cfg.clone();
         self.shared.mutate(|d| {
             d.config = cfg;
             d.mode = mode;
@@ -772,9 +786,7 @@ impl Runtime {
         use crate::safety::liveness::{Monitor, Progress, STALL_BUDGET_MS, STALL_EXIT_CODE};
         let progress = Arc::new(Progress::default());
         progress.allow_until(crate::util::mono_ms().saturating_add(STALL_BUDGET_MS));
-        let poll_ms = self
-            .shared
-            .with(|d| d.config.safety.watchdog_interval_ms.clamp(1_000, 10_000));
+        let poll_ms = self.config.safety.watchdog_interval_ms.clamp(1_000, 10_000);
         let _monitor =
             match Monitor::start(progress.clone(), Duration::from_millis(poll_ms), || {
                 // No logger/shared locks here: the loop may be stalled while owning one.
@@ -798,14 +810,10 @@ impl Runtime {
             let now = crate::util::mono_ms();
             progress.allow_until(now.saturating_add(STALL_BUDGET_MS));
             self.tick(now);
-            let cfg = self.shared.with(|d| d.config.sample.clone());
-            let screen_off = self
-                .shared
-                .with(|d| d.snapshot.apps.screen == ScreenState::Off);
-            let interval = if screen_off {
-                cfg.screen_off_interval_ms
+            let interval = if self.last_screen_off {
+                self.config.sample.screen_off_interval_ms
             } else {
-                cfg.interval_ms
+                self.config.sample.interval_ms
             };
             progress.allow_until(
                 crate::util::mono_ms()
@@ -857,28 +865,25 @@ impl Runtime {
 pub fn diagnostics_json(d: &Data) -> Json {
     // Deliberate allow-list: never serialize Shared, Config, model, raw logs,
     // app history, recovery text or the complete device identity into an export.
-    let status = status_json(d);
     let mut report = Json::obj();
     report.set("schema", Json::num(1.0));
-    for key in [
-        "version",
-        "mode",
-        "configured_mode",
+    report.set("version", Json::str(crate::VERSION.to_string()));
+    report.set("mode", Json::str(d.mode.as_str()));
+    report.set("configured_mode", Json::str(d.configured_mode.as_str()));
+    report.set(
         "iso",
-        "ts_ms",
-        "wall_ts_ms",
-        "uptime_s",
-        "daemon",
-        "cpu",
-        "memory",
-        "psi",
-        "thermal",
-        "battery",
-    ] {
-        if let Some(value) = status.get(key) {
-            report.set(key, value.clone());
-        }
-    }
+        Json::str(crate::util::iso_utc(crate::util::now_ms())),
+    );
+    report.set("ts_ms", Json::num(d.snapshot.ts_ms as f64));
+    report.set("wall_ts_ms", Json::num(d.snapshot.wall_ts_ms as f64));
+    report.set("uptime_s", Json::num(d.snapshot.uptime_s));
+    report.set("daemon", daemon_json(d));
+    report.set("cpu", cpu_json(d));
+    report.set("memory", memory_json(d));
+    report.set("psi", psi_json(d));
+    report.set("thermal", thermal_status_json(d));
+    report.set("battery", battery_json(d));
+
     let mut device = Json::obj();
     let identity = d.device.to_json();
     for key in [
@@ -916,34 +921,32 @@ pub fn diagnostics_json(d: &Data) -> Json {
         "sample_errors",
         Json::num(d.snapshot.health.sample_errors as f64),
     );
-    report.set(
-        "sampling",
-        d.config
-            .to_json()
-            .get("sample")
-            .cloned()
-            .unwrap_or(Json::Null),
+    let mut sampling = Json::obj();
+    sampling.set("interval_ms", Json::num(d.config.sample.interval_ms as f64));
+    sampling.set(
+        "screen_off_interval_ms",
+        Json::num(d.config.sample.screen_off_interval_ms as f64),
     );
+    sampling.set(
+        "thermal_interval_ms",
+        Json::num(d.config.sample.thermal_interval_ms as f64),
+    );
+    sampling.set(
+        "history_interval_ms",
+        Json::num(d.config.sample.history_interval_ms as f64),
+    );
+    sampling.set(
+        "proc_scan_interval_ms",
+        Json::num(d.config.sample.proc_scan_interval_ms as f64),
+    );
+    report.set("sampling", sampling);
     report.set("safe_mode", Json::Bool(d.safe_mode));
     report.set("ACTUATOR_ENABLED", Json::Bool(crate::sys::ACTUATOR_ENABLED));
     report.set("learner", d.learner.to_diagnostics_json());
     report
 }
 
-/// Full status document, shared by the HTTP API and `--status`.
-pub fn status_json(d: &Data) -> Json {
-    let mut j = Json::obj();
-    j.set("version", Json::str(crate::VERSION.to_string()));
-    j.set("mode", Json::str(d.mode.as_str()));
-    j.set("configured_mode", Json::str(d.configured_mode.as_str()));
-    j.set("ts_ms", Json::num(d.snapshot.ts_ms as f64));
-    j.set("wall_ts_ms", Json::num(d.snapshot.wall_ts_ms as f64));
-    j.set(
-        "iso",
-        Json::str(crate::util::iso_utc(crate::util::now_ms())),
-    );
-    j.set("uptime_s", Json::num(d.snapshot.uptime_s));
-    j.set("device", d.device.to_json());
+pub fn daemon_json(d: &Data) -> Json {
     let mut daemon = d.daemon.to_json();
     daemon.set("completed_ticks", Json::num(d.completed_ticks as f64));
     daemon.set("last_tick_ms", Json::num(d.last_tick_ms));
@@ -952,11 +955,10 @@ pub fn status_json(d: &Data) -> Json {
         "liveness_budget_ms",
         Json::num(crate::safety::liveness::STALL_BUDGET_MS as f64),
     );
-    j.set("daemon", daemon);
-    j.set("policy", d.decision.to_json());
-    j.set("learner", d.learner.to_json());
+    daemon
+}
 
-    // CPU
+pub fn cpu_json(d: &Data) -> Json {
     let mut cpu = Json::obj();
     cpu.set("total_pct", Json::num(d.snapshot.cpu.total_pct));
     cpu.set("present", Json::str(fmt_list(&d.snapshot.cpu.present)));
@@ -1019,9 +1021,10 @@ pub fn status_json(d: &Data) -> Json {
                 .collect(),
         ),
     );
-    j.set("cpu", cpu);
+    cpu
+}
 
-    // Memory
+pub fn memory_json(d: &Data) -> Json {
     let m = &d.snapshot.mem;
     let mut mem = Json::obj();
     mem.set("total_mb", Json::num(m.total_kb / 1024.0));
@@ -1064,9 +1067,10 @@ pub fn status_json(d: &Data) -> Json {
         Json::str(m.mmd.service_state.clone().unwrap_or_default()),
     );
     mem.set("mmd", mmd);
-    j.set("memory", mem);
+    mem
+}
 
-    // PSI
+pub fn psi_json(d: &Data) -> Json {
     let mut psi = Json::obj();
     for (name, res) in [
         ("cpu", d.snapshot.psi.cpu),
@@ -1083,9 +1087,10 @@ pub fn status_json(d: &Data) -> Json {
         o.set("full300", Json::num(res.full300));
         psi.set(name, o);
     }
-    j.set("psi", psi);
+    psi
+}
 
-    // Thermal
+pub fn thermal_status_json(d: &Data) -> Json {
     let t = &d.snapshot.thermal;
     let mut th = Json::obj();
     th.set(
@@ -1128,9 +1133,10 @@ pub fn status_json(d: &Data) -> Json {
                 .collect(),
         ),
     );
-    j.set("thermal", th);
+    th
+}
 
-    // Battery
+pub fn battery_json(d: &Data) -> Json {
     let b = &d.snapshot.battery;
     let mut bat = Json::obj();
     bat.set("present", Json::Bool(b.present));
@@ -1140,7 +1146,31 @@ pub fn status_json(d: &Data) -> Json {
     bat.set("charging", Json::Bool(b.charging));
     bat.set("current_ma", opt_num(b.current_ma));
     bat.set("voltage_mv", opt_num(b.voltage_mv));
-    j.set("battery", bat);
+    bat
+}
+
+/// Full status document, shared by the HTTP API and `--status`.
+pub fn status_json(d: &Data) -> Json {
+    let mut j = Json::obj();
+    j.set("version", Json::str(crate::VERSION.to_string()));
+    j.set("mode", Json::str(d.mode.as_str()));
+    j.set("configured_mode", Json::str(d.configured_mode.as_str()));
+    j.set("ts_ms", Json::num(d.snapshot.ts_ms as f64));
+    j.set("wall_ts_ms", Json::num(d.snapshot.wall_ts_ms as f64));
+    j.set(
+        "iso",
+        Json::str(crate::util::iso_utc(crate::util::now_ms())),
+    );
+    j.set("uptime_s", Json::num(d.snapshot.uptime_s));
+    j.set("device", d.device.to_json());
+    j.set("daemon", daemon_json(d));
+    j.set("policy", d.decision.to_json());
+    j.set("learner", d.learner.to_json());
+    j.set("cpu", cpu_json(d));
+    j.set("memory", memory_json(d));
+    j.set("psi", psi_json(d));
+    j.set("thermal", thermal_status_json(d));
+    j.set("battery", battery_json(d));
 
     // Apps
     let mut apps = Json::obj();

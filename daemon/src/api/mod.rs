@@ -237,20 +237,13 @@ fn handle(mut request: Request, shared: &Arc<Shared>) {
                 j.to_string()
             }),
         )),
-        ("GET", "/api/cpu") => Ok((
-            200,
-            shared.with(|d| {
-                let s = status_json(d);
-                s.get("cpu").cloned().unwrap_or(Json::Null).to_string()
-            }),
-        )),
+        ("GET", "/api/cpu") => Ok((200, shared.with(|d| crate::engine::cpu_json(d).to_string()))),
         ("GET", "/api/memory") => Ok((
             200,
             shared.with(|d| {
-                let s = status_json(d);
                 let mut out = Json::obj();
-                out.set("memory", s.get("memory").cloned().unwrap_or(Json::Null));
-                out.set("psi", s.get("psi").cloned().unwrap_or(Json::Null));
+                out.set("memory", crate::engine::memory_json(d));
+                out.set("psi", crate::engine::psi_json(d));
                 out.set("policy", d.decision.to_json());
                 out.to_string()
             }),
