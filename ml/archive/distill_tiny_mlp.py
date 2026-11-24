@@ -5,8 +5,13 @@ from __future__ import annotations
 
 import json
 import pickle
+import sys
 import time
 from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 import numpy as np
 import torch
@@ -24,9 +29,9 @@ from train_neural import (
     tune_thresh,
 )
 
-ROOT = Path(__file__).resolve().parent
 RES_DIR = ROOT / "results"
-ART_DIR = ROOT / "artifacts"
+ART_DIR = ROOT / "artifacts" / "archive"
+ART_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def round_list(arr: np.ndarray, decimals: int = 5) -> list:

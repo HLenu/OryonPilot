@@ -4,8 +4,13 @@
 from __future__ import annotations
 
 import json
+import sys
 import time
 from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 import numpy as np
 import torch
@@ -22,9 +27,8 @@ from torch.utils.data import DataLoader, TensorDataset
 
 from dataset import ACTION_NAMES, SEQ_LEN, build_dataset
 
-ROOT = Path(__file__).resolve().parent
 RES_DIR = ROOT / "results"
-ART_DIR = ROOT / "artifacts"
+ART_DIR = ROOT / "artifacts" / "archive"
 RES_DIR.mkdir(parents=True, exist_ok=True)
 ART_DIR.mkdir(parents=True, exist_ok=True)
 

@@ -17,7 +17,7 @@ from sklearn.linear_model import Ridge
 from sklearn.metrics import r2_score, silhouette_score
 from sklearn.preprocessing import StandardScaler
 
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parent.parent
 DATA_DIR = ROOT / "data"
 RES_DIR = ROOT / "results"
 RES_DIR.mkdir(parents=True, exist_ok=True)

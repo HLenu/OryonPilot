@@ -376,15 +376,27 @@ def run_compact_gbdt_probs(ds, model_path: Path) -> tuple[np.ndarray, np.ndarray
     return probs, fqi_w
 
 
+def _resolve_optional_artifact(name: str) -> Path | None:
+    for p in (ART_DIR / name, ART_DIR / "archive" / name):
+        if p.exists():
+            return p
+    return None
+
+
 def main() -> None:
     ds = build_dataset()
     env_reg, prime_coef, _ = fit_thermal_env(ds)
     ctx_all = build_compact_context(ds)
 
-    with open(ART_DIR / "lgb_models.pkl", "rb") as f:
-        lgb_bundle = pickle.load(f)
-    lgb_act_probs = lgb_bundle["action"].predict_proba(ds.X_tab)
-    tiny_act_probs = run_tiny_mlp_probs(ds, ART_DIR / "tiny_mlp_weights.json")
+    lgb_act_probs = None
+    lgb_path = _resolve_optional_artifact("lgb_models.pkl")
+    if lgb_path is not None:
+        with open(lgb_path, "rb") as f:
+            lgb_bundle = pickle.load(f)
+        lgb_act_probs = lgb_bundle["action"].predict_proba(ds.X_tab)
+
+    tiny_path = _resolve_optional_artifact("tiny_mlp_weights.json")
+    tiny_act_probs = run_tiny_mlp_probs(ds, tiny_path) if tiny_path is not None else None
 
     sched_path = ART_DIR / "sched_model.json"
     compact_probs = None
@@ -467,9 +479,11 @@ def main() -> None:
     test_res = {
         "OldStatic_50C": simulate_policy(ds, te, old_static_rule_fn, env_reg, prime_coef),
         "StaticRules_v012": simulate_policy(ds, te, static_rule_fn, env_reg, prime_coef),
-        "LightGBM_Policy": simulate_policy(ds, te, lgb_fn, env_reg, prime_coef),
-        "TinyMLP_Policy": simulate_policy(ds, te, tiny_mlp_fn, env_reg, prime_coef),
     }
+    if lgb_act_probs is not None:
+        test_res["LightGBM_Policy"] = simulate_policy(ds, te, lgb_fn, env_reg, prime_coef)
+    if tiny_act_probs is not None:
+        test_res["TinyMLP_Policy"] = simulate_policy(ds, te, tiny_mlp_fn, env_reg, prime_coef)
     if compact_probs is not None:
         test_res["CompactGBDT_Policy"] = simulate_policy(ds, te, compact_gbdt_fn, env_reg, prime_coef)
     test_res["OfflineRL_FQI"] = simulate_policy(ds, te, fqi_fn, env_reg, prime_coef)
@@ -492,29 +506,34 @@ def main() -> None:
         x[2] = T_cf / 100.0
         bandit_cold.update(x, act, rew)
 
-    bandit_warm = LinUCBBandit(d=ctx_all.shape[1], alpha=0.35, gamma=0.999)
-
-    def warm_select(_k, idx, T_cf, _prev):
-        x = ctx_all[idx].copy()
-        x[2] = T_cf / 100.0
-        if T_cf >= 80.0:
-            return 4
-        return bandit_warm.select(x, prior_probs=tiny_act_probs[idx], prior_w=1.2)
-
-    def warm_update(_k, idx, T_cf, act, rew):
-        x = ctx_all[idx].copy()
-        x[2] = T_cf / 100.0
-        bandit_warm.update(x, act, rew)
-
     res_full_sel, res_full_upd = make_fqi_residual_bandit()
 
     full_res = {
         "StaticRules_v012": simulate_policy(ds, full_idx, static_rule_fn, env_reg, prime_coef),
         "LinUCB_ColdStart": simulate_policy(ds, full_idx, cold_select, env_reg, prime_coef, online_update_fn=cold_update),
-        "WarmStart_TinyMLP_LinUCB": simulate_policy(ds, full_idx, warm_select, env_reg, prime_coef, online_update_fn=warm_update),
-        "WarmStart_FQI_Residual_LinUCB": simulate_policy(ds, full_idx, res_full_sel, env_reg, prime_coef, online_update_fn=res_full_upd),
-        "OfflineRL_FQI": simulate_policy(ds, full_idx, fqi_fn, env_reg, prime_coef),
     }
+    if tiny_act_probs is not None:
+        bandit_warm = LinUCBBandit(d=ctx_all.shape[1], alpha=0.35, gamma=0.999)
+
+        def warm_select(_k, idx, T_cf, _prev):
+            x = ctx_all[idx].copy()
+            x[2] = T_cf / 100.0
+            if T_cf >= 80.0:
+                return 4
+            return bandit_warm.select(x, prior_probs=tiny_act_probs[idx], prior_w=1.2)
+
+        def warm_update(_k, idx, T_cf, act, rew):
+            x = ctx_all[idx].copy()
+            x[2] = T_cf / 100.0
+            bandit_warm.update(x, act, rew)
+
+        full_res["WarmStart_TinyMLP_LinUCB"] = simulate_policy(
+            ds, full_idx, warm_select, env_reg, prime_coef, online_update_fn=warm_update
+        )
+    full_res["WarmStart_FQI_Residual_LinUCB"] = simulate_policy(
+        ds, full_idx, res_full_sel, env_reg, prime_coef, online_update_fn=res_full_upd
+    )
+    full_res["OfflineRL_FQI"] = simulate_policy(ds, full_idx, fqi_fn, env_reg, prime_coef)
 
     # Export LinUCB + FQI lightweight params as well for potential Rust inspection
     out = {

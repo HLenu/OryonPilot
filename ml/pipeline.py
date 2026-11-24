@@ -2,9 +2,9 @@
 """Automated Offline Retraining & Regression Gate Pipeline for OryonPilot.
 
 Workflow:
-  1. Optional read-only pull from Xiaomi 15 telemetry (/data/adb/neurosched/telemetry/history.csv + model.json)
-  2. EDA + Dataset construction (zero-leakage time-ordered Split)
-  3. Train Tabular Baselines + Full LightGBM + CompactGBDT_FQI (<55 KiB JSON)
+  1. Optional read-only pull from Xiaomi 15 telemetry (/data/adb/neurosched/telemetry/history.csv)
+  2. Dataset construction (zero-leakage time-ordered split)
+  3. Train CompactGBDT_FQI (<55 KiB JSON)
   4. Run Counterfactual SM8750 RL & Continuous Learning Simulation
   5. Compare candidate against currently embedded `daemon/src/learner/default_model.json`
      and emit PASS/FAIL deployment verdict. Never writes to phone automatically.
@@ -45,16 +45,12 @@ def pull_from_device(adb_serial: str) -> None:
                 "-s",
                 adb_serial,
                 "shell",
-                f"su -c 'mkdir -p {tmp_dir} && cp /data/adb/neurosched/telemetry/history.csv {tmp_dir}/history.csv && cp /data/adb/neurosched/model.json {tmp_dir}/model.json && chmod 644 {tmp_dir}/*'",
+                f"su -c 'mkdir -p {tmp_dir} && cp /data/adb/neurosched/telemetry/history.csv {tmp_dir}/history.csv && chmod 644 {tmp_dir}/history.csv'",
             ],
             check=True,
         )
         subprocess.run(
             ["adb", "-s", adb_serial, "pull", f"{tmp_dir}/history.csv", str(DATA_DIR / "history.csv")],
-            check=True,
-        )
-        subprocess.run(
-            ["adb", "-s", adb_serial, "pull", f"{tmp_dir}/model.json", str(DATA_DIR / "model.json")],
             check=True,
         )
     finally:
@@ -141,9 +137,7 @@ def main() -> None:
     if args.dry_run and CANDIDATE_MODEL.exists() and (RES_DIR / "rl_sim_results.json").exists():
         print("[pipeline] --dry-run: validating regression gate on existing artifacts/results...")
     else:
-        run_step("eda.py")
         run_step("dataset.py")
-        run_step("train_tabular.py")
         run_step("train_compact_gbdt.py")
         run_step("sim_rl.py")
 

@@ -10,6 +10,14 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from sklearn.metrics import (
+    accuracy_score,
+    average_precision_score,
+    f1_score,
+    mean_absolute_error,
+    mean_squared_error,
+    roc_auc_score,
+)
 
 ROOT = Path(__file__).resolve().parent
 DATA_DIR = ROOT / "data"
@@ -434,6 +442,45 @@ def build_dataset() -> DatasetBundle:
         y_next_app_cls=y_next_app_cls,
         top_apps=top_train_apps,
     )
+
+
+def reg_metrics(y_true: np.ndarray, y_pred: np.ndarray) -> dict[str, float]:
+    mae = float(mean_absolute_error(y_true, y_pred))
+    rmse = float(np.sqrt(mean_squared_error(y_true, y_pred)))
+    return {"mae": round(mae, 4), "rmse": round(rmse, 4)}
+
+
+def bin_metrics(y_true: np.ndarray, y_prob: np.ndarray, thresh: float = 0.5) -> dict[str, float]:
+    y_prob = np.clip(y_prob, 1e-6, 1.0 - 1e-6)
+    pred = (y_prob >= thresh).astype(int)
+    auc = float(roc_auc_score(y_true, y_prob)) if len(np.unique(y_true)) > 1 else 0.0
+    ap = float(average_precision_score(y_true, y_prob)) if len(np.unique(y_true)) > 1 else 0.0
+    f1 = float(f1_score(y_true, pred, zero_division=0))
+    acc = float(accuracy_score(y_true, pred))
+    return {
+        "roc_auc": round(auc, 4),
+        "pr_auc": round(ap, 4),
+        "f1": round(f1, 4),
+        "acc": round(acc, 4),
+    }
+
+
+def cls_metrics(y_true: np.ndarray, y_pred: np.ndarray) -> dict[str, float]:
+    return {
+        "acc": round(float(accuracy_score(y_true, y_pred)), 4),
+        "macro_f1": round(float(f1_score(y_true, y_pred, average="macro", zero_division=0)), 4),
+        "weighted_f1": round(float(f1_score(y_true, y_pred, average="weighted", zero_division=0)), 4),
+    }
+
+
+def tune_binary_threshold(y_val: np.ndarray, p_val: np.ndarray) -> float:
+    best_t, best_f1 = 0.5, -1.0
+    for t in np.linspace(0.03, 0.75, 73):
+        f1 = f1_score(y_val, (p_val >= t).astype(int), zero_division=0)
+        if f1 > best_f1:
+            best_f1 = f1
+            best_t = float(t)
+    return best_t
 
 
 if __name__ == "__main__":
