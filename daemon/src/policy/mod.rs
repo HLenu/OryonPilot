@@ -88,4 +88,28 @@ impl Decision {
         );
         j
     }
+
+    /// Maps the policy state to the 5 canonical scheduling actions for shadow comparison.
+    pub fn sched_action(&self) -> crate::learner::bandit::SchedAction {
+        use crate::learner::bandit::SchedAction;
+        match self.state {
+            PolicyState::ThermalGuard | PolicyState::MemoryPressure => SchedAction::ThermalCap,
+            PolicyState::BatterySaver | PolicyState::Idle => SchedAction::DeepSave,
+            PolicyState::AppLaunch | PolicyState::Game => SchedAction::Boost,
+            PolicyState::Foreground => SchedAction::Responsive,
+            PolicyState::Balanced | PolicyState::Boot | PolicyState::SafeMode => {
+                SchedAction::Efficiency
+            }
+        }
+    }
+
+    /// True when policy guards forbid boosting and require thermal/memory capping.
+    pub fn requires_protective_cap(&self) -> bool {
+        self.permission >= ThermalPermission::NoBoost
+            || self.memory_class != MemoryClass::Normal
+            || matches!(
+                self.state,
+                PolicyState::ThermalGuard | PolicyState::MemoryPressure
+            )
+    }
 }

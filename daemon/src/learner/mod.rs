@@ -12,9 +12,10 @@ pub mod bandit;
 pub mod gbdt;
 
 use crate::json::{self, Json};
+use crate::policy::Decision;
 use crate::storage::secure_file;
 use crate::types::Snapshot;
-use bandit::{PolicyGuardInput, ResidualLinUcb, SchedAction, ShadowEvaluator, StaticRuleInput};
+use bandit::{ResidualLinUcb, SafetyGuard, SchedAction, ShadowEvaluator};
 use gbdt::{CompactGbdtModel, FeatureExtractor, ModelSource, N_ACTIONS};
 use std::path::Path;
 
@@ -297,6 +298,7 @@ impl Learner {
         wall_ms: u64,
         snap: &Snapshot,
         is_launcher: bool,
+        decision: &Decision,
     ) -> LearnerSnapshot {
         let (raw_features, ctx) =
             self.extractor
@@ -319,26 +321,17 @@ impl Learner {
         let mem_avail_pct = snap.mem.available_pct().clamp(0.0, 100.0);
         let batt_pct = snap.battery.capacity_pct.unwrap_or(70.0);
 
-        let guard = PolicyGuardInput {
+        let guard = SafetyGuard {
+            protective_cap: decision.requires_protective_cap(),
+            sensor_untrusted: !snap.thermal.trust.is_trusted(),
             temp_c,
-            psi_full10,
-            mem_avail_pct,
             overheat_prob: forecast.overheat_3m_prob,
             th_overheat: self.model.th_overheat,
         };
         let (recommended_action, bandit_scores, decision_source) =
             self.bandit.select(&ctx, &forecast.fqi_q, guard);
 
-        let static_action = bandit::static_rule_action(StaticRuleInput {
-            cpu_pct: snap.cpu.total_pct,
-            prime_mhz,
-            temp_c,
-            psi_full10,
-            mem_avail_pct,
-            is_launcher,
-            is_charging: snap.battery.charging,
-            batt_pct,
-        });
+        let static_action = decision.sched_action();
 
         let due_minute = !self.has_minute_sample
             || now_ms < self.last_minute_ms
@@ -440,6 +433,7 @@ mod tests {
         });
         snap.thermal.cpu_max_c = Some(temp_c);
         snap.thermal.cpu_c = Some(temp_c);
+        snap.thermal.trust = crate::types::ThermalTrust::Trusted;
         snap.battery.temp_c = Some(34.0);
         snap.battery.capacity_pct = Some(72.0);
         snap.mem.total_kb = 15_113.4 * 1024.0;
@@ -598,10 +592,10 @@ mod tests {
         }
 
         let zero_fqi = [0.0f64; N_ACTIONS];
-        let guard = PolicyGuardInput {
+        let guard = SafetyGuard {
+            protective_cap: false,
+            sensor_untrusted: false,
             temp_c: 44.0,
-            psi_full10: 0.0,
-            mem_avail_pct: 30.0,
             overheat_prob: 0.05,
             th_overheat: 0.30,
         };
@@ -626,15 +620,25 @@ mod tests {
     #[test]
     fn shadow_evaluator_scores_and_tracks_win_rate_and_issues() {
         let mut learner = Learner::embedded();
+        let dec_normal = Decision {
+            state: crate::types::PolicyState::Balanced,
+            ..Default::default()
+        };
+        let dec_hot = Decision {
+            state: crate::types::PolicyState::ThermalGuard,
+            permission: crate::policy::ThermalPermission::Cap,
+            memory_class: crate::policy::MemoryClass::Thrashing,
+            ..Default::default()
+        };
         // Tick 0: launcher low CPU (6%) while Prime cluster is stuck boosting @ 2800 MHz -> wasted boost!
         let s0 = make_snap(6.0, 2_800_000, 46.0, "com.miui.home", 0.0, 5_000.0 * 1024.0);
-        let d0 = learner.on_tick(1_000, 1_795_000_000_000, &s0, true);
+        let d0 = learner.on_tick(1_000, 1_795_000_000_000, &s0, true, &dec_normal);
         assert_eq!(d0.updates, 0);
         assert_eq!(d0.wasted_boost_mins, 1);
 
         // Tick 1 (60s later): hot 78C + high PSI full -> settles tick 0 and detects overheat/mem pressure.
         let s1 = make_snap(35.0, 3_200_000, 78.0, "app.game", 4.0, 900.0 * 1024.0);
-        let d1 = learner.on_tick(62_000, 1_795_000_061_000, &s1, false);
+        let d1 = learner.on_tick(62_000, 1_795_000_061_000, &s1, false, &dec_hot);
         assert_eq!(d1.updates, 1);
         assert_eq!(d1.thermal_spike_mins, 1);
         assert_eq!(d1.memory_pressure_mins, 1);
@@ -650,11 +654,15 @@ mod tests {
         let state_path = dir.join("learner.json");
 
         let mut learner = Learner::embedded();
+        let dec_fg = Decision {
+            state: crate::types::PolicyState::Foreground,
+            ..Default::default()
+        };
         let secret_pkg = "com.super.secret.banking";
         let s0 = make_snap(28.0, 2_900_000, 50.0, secret_pkg, 0.0, 4_500.0 * 1024.0);
         let s1 = make_snap(15.0, 1_400_000, 48.0, secret_pkg, 0.0, 4_500.0 * 1024.0);
-        learner.on_tick(1_000, 1_795_000_000_000, &s0, false);
-        let snap1 = learner.on_tick(65_000, 1_795_000_064_000, &s1, false);
+        learner.on_tick(1_000, 1_795_000_000_000, &s0, false, &dec_fg);
+        let snap1 = learner.on_tick(65_000, 1_795_000_064_000, &s1, false, &dec_fg);
         assert_eq!(snap1.updates, 1);
         assert!(learner.is_dirty());
 
@@ -673,7 +681,7 @@ mod tests {
         );
 
         let mut reloaded = Learner::load(&dir.join("absent.json"), &state_path);
-        let snap2 = reloaded.on_tick(1_000, 1_795_000_000_000, &s1, false);
+        let snap2 = reloaded.on_tick(1_000, 1_795_000_000_000, &s1, false, &dec_fg);
         // Updates count before settling minute step 2 reflects persisted state (1).
         assert_eq!(snap2.updates, 1);
         assert!((snap2.learned_mean_reward - snap1.learned_mean_reward).abs() < 1e-9);

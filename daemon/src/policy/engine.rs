@@ -7,7 +7,7 @@
 use crate::config::{PolicyConfig, Profile};
 use crate::types::{PolicyState, ScreenState, Snapshot};
 
-use super::memory_guard::{MemoryClass, MemoryGuard};
+use super::memory_guard::MemoryGuard;
 use super::state::StateMachine;
 use super::thermal_guard::{ThermalGuard, ThermalPermission};
 use super::Decision;
@@ -67,14 +67,6 @@ impl Engine {
 
     pub fn machine(&self) -> &StateMachine {
         &self.sm
-    }
-
-    pub fn memory_class(&self) -> MemoryClass {
-        self.memory.class()
-    }
-
-    pub fn thermal_permission(&self) -> ThermalPermission {
-        self.thermal.permission()
     }
 
     /// Hot reload of policy settings; model/state history is preserved.
@@ -167,7 +159,7 @@ impl Engine {
         }
 
         let batt = &snap.battery;
-        let capacity = batt.capacity_pct.filter(|cap| (0.0..=100.0).contains(cap));
+        let capacity = batt.capacity_pct;
         if self.cfg.battery.ignore_while_charging && batt.charging {
             self.battery_saver = false;
         } else if let Some(cap) = capacity {

@@ -31,7 +31,6 @@ pub struct MemoryGuard {
     policy: MemoryPolicy,
     class: MemoryClass,
     pressured: bool,
-    score: f64,
 }
 
 impl MemoryGuard {
@@ -40,7 +39,6 @@ impl MemoryGuard {
             policy,
             class: MemoryClass::Normal,
             pressured: false,
-            score: 0.0,
         }
     }
 
@@ -50,11 +48,6 @@ impl MemoryGuard {
 
     pub fn is_pressured(&self) -> bool {
         self.pressured
-    }
-
-    /// 0..100 composite, for the dashboard only. Not used for decisions.
-    pub fn score(&self) -> f64 {
-        self.score
     }
 
     pub fn update(&mut self, mem: &MemSnapshot, psi: &PsiSnapshot) -> MemoryClass {
@@ -87,12 +80,6 @@ impl MemoryGuard {
         } else {
             MemoryClass::Normal
         };
-
-        self.score = (0.40 * (psi.memory.some10 / p.psi_some_enter.max(1.0) * 100.0)
-            + 0.35 * (psi.memory.full10 / p.psi_full_enter.max(0.5) * 100.0)
-            + 0.15 * (mem.kswapd_cpu_pct / p.kswapd_pct_enter.max(1.0) * 100.0)
-            + 0.10 * ((100.0 - avail_pct) / 100.0 * 100.0))
-            .clamp(0.0, 100.0);
         self.class
     }
 

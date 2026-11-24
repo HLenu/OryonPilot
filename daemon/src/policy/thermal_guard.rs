@@ -8,7 +8,7 @@
 use crate::config::ThermalPolicy;
 use crate::types::{ThermalLevel, ThermalSnapshot};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ThermalPermission {
     /// Full range available.
     Allow,

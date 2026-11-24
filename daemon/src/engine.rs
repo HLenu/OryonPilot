@@ -517,9 +517,10 @@ impl Runtime {
             .foreground
             .as_deref()
             .is_some_and(|fg| fg == "-" || self.config.apps.launchers.iter().any(|l| l == fg));
-        let learner_snap = self.learner.on_tick(now, wall_ms, &snap, is_launcher);
-
         let decision = self.engine.evaluate(&snap, now);
+        let learner_snap = self
+            .learner
+            .on_tick(now, wall_ms, &snap, is_launcher, &decision);
 
         // ---- thermal fail-closed -------------------------------------------
         // If the CPU temperature cannot be trusted, active writes stop entirely.

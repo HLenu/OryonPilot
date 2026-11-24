@@ -56,24 +56,12 @@ impl SchedAction {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct PolicyGuardInput {
+pub struct SafetyGuard {
+    pub protective_cap: bool,
+    pub sensor_untrusted: bool,
     pub temp_c: f64,
-    pub psi_full10: f64,
-    pub mem_avail_pct: f64,
     pub overheat_prob: f64,
     pub th_overheat: f64,
-}
-
-#[derive(Debug, Clone, Copy)]
-pub struct StaticRuleInput {
-    pub cpu_pct: f64,
-    pub prime_mhz: f64,
-    pub temp_c: f64,
-    pub psi_full10: f64,
-    pub mem_avail_pct: f64,
-    pub is_launcher: bool,
-    pub is_charging: bool,
-    pub batt_pct: f64,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -121,7 +109,7 @@ impl ResidualLinUcb {
         &self,
         x: &[f64; CONTEXT_DIM],
         fqi_q: &[f64; N_ACTIONS],
-        guard: PolicyGuardInput,
+        guard: SafetyGuard,
     ) -> (SchedAction, [f64; N_ACTIONS], &'static str) {
         let q_mean = fqi_q.iter().sum::<f64>() / N_ACTIONS as f64;
         let mut scores = [0.0f64; N_ACTIONS];
@@ -134,9 +122,8 @@ impl ResidualLinUcb {
             *score_slot = adv + mean + UCB_ALPHA * var.sqrt();
         }
 
-        if guard.temp_c >= 78.0
-            || guard.psi_full10 >= 3.0
-            || guard.mem_avail_pct < 8.0
+        if guard.protective_cap
+            || guard.temp_c >= 78.0
             || (guard.overheat_prob >= guard.th_overheat && guard.temp_c >= 65.0)
         {
             return (SchedAction::ThermalCap, scores, "safety_override");
@@ -150,7 +137,12 @@ impl ResidualLinUcb {
                 best_a = a;
             }
         }
-        (SchedAction::from_index(best_a), scores, "fqi_linucb")
+        let chosen = SchedAction::from_index(best_a);
+        if guard.sensor_untrusted && matches!(chosen, SchedAction::Boost | SchedAction::Responsive)
+        {
+            return (SchedAction::Efficiency, scores, "safety_override");
+        }
+        (chosen, scores, "fqi_linucb")
     }
 
     /// Sherman-Morrison exact rank-1 update with forgetting stabilization.
@@ -258,24 +250,6 @@ impl ResidualLinUcb {
         }
         Some(out)
     }
-}
-
-pub fn static_rule_action(inp: StaticRuleInput) -> SchedAction {
-    if inp.temp_c >= 75.0 || inp.psi_full10 >= 3.0 || inp.mem_avail_pct < 8.0 {
-        return SchedAction::ThermalCap;
-    }
-    if (!inp.is_charging && inp.batt_pct <= 15.0)
-        || (inp.is_launcher && inp.cpu_pct < 4.5 && inp.prime_mhz <= 1200.0)
-    {
-        return SchedAction::DeepSave;
-    }
-    if inp.cpu_pct >= 25.0 || inp.prime_mhz >= 2400.0 {
-        return SchedAction::Boost;
-    }
-    if !inp.is_launcher && inp.cpu_pct >= 5.0 {
-        return SchedAction::Responsive;
-    }
-    SchedAction::Efficiency
 }
 
 pub fn compute_step_reward(obs: RewardObs) -> f64 {

@@ -146,9 +146,6 @@ fn main() {
             .foreground
             .as_deref()
             .is_some_and(|fg| fg == "-" || cfg.apps.launchers.iter().any(|l| l == fg));
-        let mut learner =
-            neurosched::learner::Learner::load(&paths.sched_model(), &paths.learner_state());
-        let learner_snap = learner.on_tick(now, wall_ms, &snap, is_launcher);
         let mut engine = neurosched::policy::Engine::new(
             cfg.policy.clone(),
             cfg.actuator.profiles.clone(),
@@ -156,6 +153,9 @@ fn main() {
             now,
         );
         let decision = engine.evaluate(&snap, now);
+        let mut learner =
+            neurosched::learner::Learner::load(&paths.sched_model(), &paths.learner_state());
+        let learner_snap = learner.on_tick(now, wall_ms, &snap, is_launcher, &decision);
         let actuator = neurosched::actuator::Actuator::new(
             root.clone(),
             &cfg.actuator,
