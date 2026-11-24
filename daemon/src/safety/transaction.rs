@@ -23,8 +23,6 @@ pub enum PendingRecovery {
         boot_id: String,
         empty: bool,
     },
-    /// An old-format journal with zero bytes cannot contain a durable write intent.
-    LegacyEmpty { session: String },
 }
 
 fn valid_session(session: &str) -> bool {
@@ -211,14 +209,6 @@ impl Journal {
         let session_file = self.file();
         std::fs::File::create_new(&session_file)?.sync_all()?;
         crate::storage::secure_file(&session_file);
-        if let Some(boot_id) = &self.boot_id {
-            // Preserve identity after the active marker is closed or archived.
-            let path = self.dir.join(format!("{}.boot_id", self.session));
-            let mut metadata = std::fs::File::create_new(&path)?;
-            writeln!(metadata, "{boot_id}")?;
-            metadata.sync_all()?;
-            crate::storage::secure_file(&path);
-        }
         let mut f = if self.boot_id.is_some() {
             std::fs::File::create_new(self.active())?
         } else {
@@ -288,16 +278,10 @@ impl Journal {
             .collect()
     }
 
-    /// Returns the session id and its entries when a previous run did not close cleanly.
-    pub fn pending(&self) -> Option<(String, Vec<JournalEntry>)> {
-        self.pending_checked().ok().flatten()
-    }
-
     pub fn pending_checked(&self) -> std::io::Result<Option<(String, Vec<JournalEntry>)>> {
         match self.pending_recovery()? {
             None => Ok(None),
             Some(PendingRecovery::Replay { session, entries }) => Ok(Some((session, entries))),
-            Some(PendingRecovery::LegacyEmpty { session }) => Ok(Some((session, Vec::new()))),
             Some(PendingRecovery::PreviousBoot { .. }) => Err(std::io::Error::new(
                 std::io::ErrorKind::InvalidData,
                 "journal belongs to a previous boot; archive it without replay",
@@ -349,14 +333,6 @@ impl Journal {
         if let Some(current_boot) = &self.boot_id {
             match marker_boot {
                 Some(previous_boot) => {
-                    let metadata =
-                        std::fs::read_to_string(self.dir.join(format!("{session}.boot_id")))?;
-                    if parse_boot_id(&metadata).as_deref() != Some(previous_boot.as_str()) {
-                        return Err(Error::new(
-                            ErrorKind::InvalidData,
-                            "active marker and journal boot metadata disagree",
-                        ));
-                    }
                     if &previous_boot != current_boot {
                         return Ok(Some(PendingRecovery::PreviousBoot {
                             session,
@@ -365,15 +341,10 @@ impl Journal {
                         }));
                     }
                 }
-                None if body.is_empty()
-                    && !self.dir.join(format!("{session}.boot_id")).exists() =>
-                {
-                    return Ok(Some(PendingRecovery::LegacyEmpty { session }));
-                }
                 None => {
                     return Err(Error::new(
                         ErrorKind::InvalidData,
-                        "legacy nonempty journal has no verified boot identity; evidence retained",
+                        "journal has no verified boot identity; evidence retained",
                     ));
                 }
             }
@@ -502,9 +473,8 @@ impl Journal {
             if index >= keep.max(1)
                 && p != self.file()
                 && !p.with_extension("previous-boot").exists()
-                && std::fs::remove_file(&p).is_ok()
             {
-                let _ = std::fs::remove_file(p.with_extension("boot_id"));
+                let _ = std::fs::remove_file(&p);
             }
         }
     }
@@ -548,12 +518,6 @@ mod tests {
             }
             other => panic!("unexpected recovery: {other:?}"),
         }
-        assert_eq!(
-            std::fs::read_to_string(dir.join("old.boot_id"))
-                .unwrap()
-                .trim(),
-            BOOT_A
-        );
         assert!(std::fs::read_to_string(old.active())
             .unwrap()
             .contains(BOOT_A));
@@ -595,12 +559,6 @@ mod tests {
         next.begin().unwrap();
         next.rotate(1);
         assert_eq!(std::fs::read(old.file()).unwrap(), old_bytes);
-        assert_eq!(
-            std::fs::read_to_string(dir.join("old.boot_id"))
-                .unwrap()
-                .trim(),
-            BOOT_A
-        );
     }
 
     #[test]
@@ -630,25 +588,16 @@ mod tests {
     }
 
     #[test]
-    fn only_a_truly_empty_legacy_journal_can_migrate_without_boot_identity() {
+    fn unverified_journal_without_boot_identity_is_rejected() {
         let (root, dir) = boot_fixture("legacy", BOOT_A);
         let old = Journal::new(&dir, "legacy".into());
         old.begin().unwrap();
         let next = Journal::for_root(&dir, "next".into(), &root).unwrap();
-        assert!(matches!(
-            next.pending_recovery().unwrap(),
-            Some(PendingRecovery::LegacyEmpty { .. })
-        ));
-        assert!(next.archive_previous_boot("legacy").is_err());
-        // Even an incomplete final record is not proof that an old implementation
-        // never wrote a node. Preserve it and demand manual inspection.
+        assert!(next.pending_recovery().is_err());
         std::fs::write(old.file(), "{unfinished").unwrap();
         let marker = std::fs::read(old.active()).unwrap();
         assert!(next.pending_recovery().is_err());
         assert_eq!(std::fs::read(old.active()).unwrap(), marker);
-        std::fs::write(old.file(), "").unwrap();
-        old.append(&entry("legacy", "/n", "0", "10")).unwrap();
-        assert!(next.pending_recovery().is_err());
     }
 
     #[test]
@@ -686,7 +635,6 @@ mod tests {
         let old = Journal::for_root(&dir, "old".into(), &root).unwrap();
         old.begin().unwrap();
         let next = Journal::for_root(&dir, "next".into(), &root).unwrap();
-        let valid = std::fs::read(old.active()).unwrap();
         for marker in [
             "old\n1\nboot_id=garbage\n".to_string(),
             format!("old\n0\nboot_id={BOOT_A}\n"),
@@ -697,11 +645,6 @@ mod tests {
             assert!(next.pending_recovery().is_err());
             assert_eq!(std::fs::read_to_string(old.active()).unwrap(), marker);
         }
-        std::fs::write(old.active(), valid).unwrap();
-        std::fs::write(dir.join("old.boot_id"), BOOT_B).unwrap();
-        assert!(next.pending_recovery().is_err());
-        std::fs::remove_file(dir.join("old.boot_id")).unwrap();
-        assert!(next.pending_recovery().is_err());
     }
 
     #[test]
@@ -749,12 +692,12 @@ mod tests {
         let j = Journal::new(&dir, "s1".into());
         j.begin().unwrap();
         j.append(&entry("s1", "/n", "0", "128")).unwrap();
-        let (session, entries) = j.pending().expect("pending");
+        let (session, entries) = j.pending_checked().unwrap().expect("pending");
         assert_eq!(session, "s1");
         assert_eq!(entries.len(), 1);
         assert_eq!(entries[0].new, "128");
         j.end().unwrap();
-        assert!(j.pending().is_none());
+        assert!(j.pending_checked().unwrap().is_none());
         assert_eq!(j.recent(5).len(), 1);
     }
 
@@ -763,7 +706,7 @@ mod tests {
         let j = Journal::disabled();
         assert!(j.begin().is_ok());
         assert!(j.append(&entry("x", "/n", "a", "b")).is_ok());
-        assert!(j.pending().is_none());
+        assert!(j.pending_checked().unwrap().is_none());
     }
 
     #[test]

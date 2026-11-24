@@ -17,7 +17,7 @@ pub mod cpufreq;
 pub mod rollback;
 pub mod uclamp;
 
-use crate::config::{ActuatorConfig, ConflictAction, Profile};
+use crate::config::{ActuatorConfig, Profile};
 use crate::policy::Decision;
 use crate::safety::ownership::{NodeView, Ownership};
 use crate::safety::transaction::{Journal, JournalEntry};
@@ -131,18 +131,11 @@ pub struct Actuator {
     global_clamp: Option<(u32, u32)>,
     ownership: Ownership,
     journal: Journal,
-    on_conflict: ConflictAction,
     recovery_required: bool,
 }
 
 impl Actuator {
-    pub fn new(
-        root: SysRoot,
-        cfg: &ActuatorConfig,
-        mode: RunMode,
-        journal: Journal,
-        on_conflict: ConflictAction,
-    ) -> Self {
+    pub fn new(root: SysRoot, cfg: &ActuatorConfig, mode: RunMode, journal: Journal) -> Self {
         let uclamp = uclamp::discover(&root);
         let global_clamp = uclamp::discover_global_clamp(&root);
         let mut a = Self {
@@ -154,7 +147,6 @@ impl Actuator {
             global_clamp,
             ownership: Ownership::default(),
             journal,
-            on_conflict,
             recovery_required: false,
             root,
         };
@@ -199,11 +191,10 @@ impl Actuator {
         self.recovery_required
     }
 
-    pub fn update_config(&mut self, cfg: &ActuatorConfig, on_conflict: ConflictAction) {
+    pub fn update_config(&mut self, cfg: &ActuatorConfig) {
         self.enabled = cfg.enabled;
         self.enable_uclamp = cfg.enable_uclamp_top_app;
         self.enable_clamp = cfg.enable_sched_util_clamp;
-        self.on_conflict = on_conflict;
     }
 
     pub fn set_mode(&mut self, mode: RunMode) {
@@ -231,10 +222,6 @@ impl Actuator {
         j.set("global_clamp_requested", Json::Bool(self.enable_clamp));
         j.set("global_clamp_supported", Json::Bool(false));
         j.set("conflict_policy", Json::str("release"));
-        j.set(
-            "requested_conflict_policy",
-            Json::str(self.on_conflict.as_str()),
-        );
         match &self.uclamp {
             Some(t) => {
                 let mut u = Json::obj();
@@ -711,13 +698,7 @@ mod tests {
     fn actuator(root: SysRoot, mode: RunMode) -> Actuator {
         let mut c = Config::default();
         c.actuator.enabled = true;
-        Actuator::new(
-            root,
-            &c.actuator,
-            mode,
-            Journal::disabled(),
-            ConflictAction::Release,
-        )
+        Actuator::new(root, &c.actuator, mode, Journal::disabled())
     }
 
     #[test]
@@ -773,13 +754,7 @@ mod tests {
         let mut cfg = Config::default();
         cfg.actuator.enabled = true;
         cfg.actuator.enable_sched_util_clamp = true;
-        let a = Actuator::new(
-            root,
-            &cfg.actuator,
-            RunMode::Enabled,
-            Journal::disabled(),
-            ConflictAction::Ignore,
-        );
+        let a = Actuator::new(root, &cfg.actuator, RunMode::Enabled, Journal::disabled());
         assert!(a
             .plan(
                 PolicyState::Game,
@@ -799,10 +774,9 @@ mod tests {
     }
 
     #[test]
-    fn ignore_conflict_configuration_still_yields_to_external_control() {
+    fn actuator_always_yields_to_external_control() {
         let (_d, root) = fixture("ignore-conflict", "0", "100");
         let mut a = actuator(root.clone(), RunMode::Enabled);
-        a.on_conflict = ConflictAction::Ignore;
         a.apply(&decision(PolicyState::Foreground, 128, 1024), 1);
         std::fs::write(root.resolve(MIN), "50.00").unwrap();
         a.apply(&decision(PolicyState::Foreground, 128, 1024), 2);
@@ -915,7 +889,6 @@ mod tests {
             &cfg.actuator,
             RunMode::Enabled,
             Journal::new(bad_dir, "failed".into()),
-            ConflictAction::Release,
         );
         let report = a.apply(&decision(PolicyState::Foreground, 128, 1024), 1);
         assert_eq!(report.failed(), 1);

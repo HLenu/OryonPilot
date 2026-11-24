@@ -239,7 +239,6 @@ fn crashed_session_is_replayed_on_next_start() {
         format!("111-999\n1234\nboot_id={boot}\n"),
     )
     .unwrap();
-    std::fs::write(journal_dir.join("111-999.boot_id"), format!("{boot}\n")).unwrap();
     std::fs::write(
         journal_dir.join("111-999.jsonl"),
         format!(

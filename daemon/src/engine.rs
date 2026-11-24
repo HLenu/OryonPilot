@@ -348,9 +348,6 @@ impl Runtime {
                     "archived session {session} from boot {boot_id}; no kernel values replayed"
                 ));
             }
-        } else if let Some(PendingRecovery::LegacyEmpty { session }) = pending {
-            journal.end()?;
-            recovered.push(format!("retired empty legacy session {session}"));
         }
         journal.begin()?;
         journal.rotate(cfg.storage.keep_files);
@@ -385,13 +382,7 @@ impl Runtime {
         // An active mode needs a fresh trusted sample before it can acquire nodes.
         let mode = effective_mode(&cfg, &root, safe_mode || cfg.mode.writes_allowed());
 
-        let mut actuator = Actuator::new(
-            root.clone(),
-            &cfg.actuator,
-            mode,
-            journal.clone(),
-            cfg.safety.on_conflict,
-        );
+        let mut actuator = Actuator::new(root.clone(), &cfg.actuator, mode, journal.clone());
         actuator.release_recovered_nodes(&released_nodes);
 
         // Do not leave the device in a tuned state if we are in safe mode.
@@ -747,8 +738,7 @@ impl Runtime {
             self.watchdog.in_safe_mode() || self.thermal_fail_closed || self.engine.safe_mode(),
         );
         self.actuator.set_mode(mode);
-        self.actuator
-            .update_config(&cfg.actuator, cfg.safety.on_conflict);
+        self.actuator.update_config(&cfg.actuator);
         self.shared.logger.set_keep_files(cfg.log.keep_files);
         self.collectors.update_config(&cfg);
         self.config = cfg.clone();

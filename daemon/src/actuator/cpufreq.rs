@@ -49,24 +49,6 @@ pub fn forbidden(node: &str) -> Option<&'static str> {
     None
 }
 
-/// Governor support snapshot for the CPU page. Read-only by construction.
-#[derive(Debug, Clone, Default)]
-pub struct GovernorSupport {
-    pub available: Vec<String>,
-    pub current: String,
-    pub schedutil: bool,
-    pub walt: bool,
-}
-
-pub fn governor_support(available: &[String], current: &str, walt: bool) -> GovernorSupport {
-    GovernorSupport {
-        available: available.to_vec(),
-        current: current.to_string(),
-        schedutil: available.iter().any(|g| g == "schedutil") || current == "schedutil",
-        walt,
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -92,16 +74,5 @@ mod tests {
     fn allows_uclamp_cgroup_nodes() {
         assert!(forbidden("/sys/fs/cgroup/top-app/cpu.uclamp.min").is_none());
         assert!(forbidden("/dev/cpuctl/top-app/cpu.uclamp.max").is_none());
-    }
-
-    #[test]
-    fn governor_support_flags_schedutil() {
-        let s = governor_support(
-            &["schedutil".into(), "performance".into()],
-            "schedutil",
-            true,
-        );
-        assert!(s.schedutil);
-        assert!(s.walt);
     }
 }

@@ -9,7 +9,6 @@ use std::collections::{BTreeMap, BTreeSet};
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Owner {
     Ours,
-    External(String),
     Unknown,
 }
 
@@ -17,7 +16,6 @@ impl Owner {
     pub fn as_str(&self) -> &str {
         match self {
             Owner::Ours => "neurosched",
-            Owner::External(who) => who,
             Owner::Unknown => "unknown",
         }
     }
@@ -65,11 +63,6 @@ impl Ownership {
         self.owners.insert(node.to_string(), Owner::Ours);
         self.last_written
             .insert(node.to_string(), value.to_string());
-    }
-
-    pub fn mark_external(&mut self, node: &str, who: impl Into<String>) {
-        self.owners
-            .insert(node.to_string(), Owner::External(who.into()));
     }
 
     /// Give up a node for the rest of the session.

@@ -161,7 +161,6 @@ fn main() {
             &cfg.actuator,
             RunMode::ObserveOnly,
             neurosched::safety::transaction::Journal::disabled(),
-            cfg.safety.on_conflict,
         );
         let data = neurosched::engine::Data {
             snapshot: snap,
@@ -224,12 +223,6 @@ fn main() {
                 }
                 println!("previous boot journal archived; no kernel values replayed");
             }
-        } else if matches!(pending, Some(PendingRecovery::LegacyEmpty { .. })) {
-            if let Err(err) = journal.end() {
-                eprintln!("legacy journal close failed: {err}");
-                exit(1);
-            }
-            println!("empty legacy journal closed; no kernel values replayed");
         }
         return;
     }
